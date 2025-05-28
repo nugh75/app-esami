@@ -147,6 +147,72 @@
     </div>
 </div>
 
+<!-- Statistiche Tipi di Attività -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="mdi mdi-calendar-clock me-2"></i>
+                    Statistiche Tipi di Attività
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Definizione argomento prova scritta</th>
+                                        <td>{{ stats.tipi_attivita.definizione_argomento_scritta }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Definizione argomento lezione simulata</th>
+                                        <td>{{ stats.tipi_attivita.definizione_argomento_lezione }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Definizione criteri e griglie</th>
+                                        <td>{{ stats.tipi_attivita.definizione_criteri }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Prova scritta (in presenza)</th>
+                                        <td>{{ stats.tipi_attivita.prova_scritta_presenza }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Prova scritta (consegna)</th>
+                                        <td>{{ stats.tipi_attivita.prova_scritta_consegna }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Valutazione prova scritta</th>
+                                        <td>{{ stats.tipi_attivita.valutazione_prova_scritta }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Lezione simulata (in presenza)</th>
+                                        <td>{{ stats.tipi_attivita.lezione_simulata }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Altro</th>
+                                        <td>{{ stats.tipi_attivita.altro }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Filtri di Ricerca -->
 <div class="card mb-4">
     <div class="card-body">
@@ -205,9 +271,17 @@
                         <i class="mdi mdi-calendar-export me-1"></i>
                         Scarica Calendario
                     </a>
-                    <a href="{{ url_for('scarica_excel') }}" class="btn btn-light">
+                    <a href="{{ url_for('scarica_excel') }}" class="btn btn-light me-2">
                         <i class="mdi mdi-file-excel me-1"></i>
                         Scarica Excel
+                    </a>
+                    <a href="{{ url_for('scarica_excel_date') }}" class="btn btn-light me-2">
+                        <i class="mdi mdi-calendar-clock me-1"></i>
+                        Scarica Date
+                    </a>
+                    <a href="{{ url_for('scarica_excel_commissioni') }}" class="btn btn-light">
+                        <i class="mdi mdi-account-group me-1"></i>
+                        Scarica Commissioni
                     </a>
                 </div>
             </div>

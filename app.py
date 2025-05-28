@@ -94,17 +94,13 @@ TIPOLOGIE_COMMISSIONE = [
 
 # Tipi di attività per le date aggiuntive
 TIPI_ATTIVITA = [
-    ('prova_scritta', 'Prova Scritta'),
-    ('prova_orale', 'Prova Orale'),
-    ('prova_pratica', 'Prova Pratica'),
-    ('laboratorio', 'Laboratorio'),
-    ('simulazione', 'Simulazione'),
-    ('verifica_portfolio', 'Verifica Portfolio'),
-    ('presentazione_progetto', 'Presentazione Progetto'),
-    ('discussione_tesi', 'Discussione Tesi'),
-    ('workshop', 'Workshop'),
-    ('seminario', 'Seminario'),
-    ('tirocinio', 'Tirocinio'),
+    ('definizione_argomento_scritta', 'Definizione argomento prova scritta'),
+    ('definizione_argomento_lezione', 'Definizione argomento lezione simulata'),
+    ('definizione_criteri', 'Definizione criteri e griglie di valutazione'),
+    ('prova_scritta_presenza', 'Prova scritta (in presenza)'),
+    ('prova_scritta_consegna', 'Prova scritta (consegna)'),
+    ('valutazione_prova_scritta', 'Valutazione prova scritta'),
+    ('lezione_simulata', 'Lezione simulata (in presenza)'),
     ('altro', 'Altro')
 ]
 
@@ -242,6 +238,17 @@ def index():
             'tutor': Commissione.query.filter_by(profilo='tutor_coordinatore').count(),
             'ref_usr': Commissione.query.filter_by(profilo='referente_usr').count(),
             'esterni': Commissione.query.filter_by(profilo='esterno_altro').count()
+        },
+        # Statistiche per i tipi di attività
+        'tipi_attivita': {
+            'definizione_argomento_scritta': CalendarioEsame.query.filter_by(attivita='definizione_argomento_scritta').count(),
+            'definizione_argomento_lezione': CalendarioEsame.query.filter_by(attivita='definizione_argomento_lezione').count(),
+            'definizione_criteri': CalendarioEsame.query.filter_by(attivita='definizione_criteri').count(),
+            'prova_scritta_presenza': CalendarioEsame.query.filter_by(attivita='prova_scritta_presenza').count(),
+            'prova_scritta_consegna': CalendarioEsame.query.filter_by(attivita='prova_scritta_consegna').count(),
+            'valutazione_prova_scritta': CalendarioEsame.query.filter_by(attivita='valutazione_prova_scritta').count(),
+            'lezione_simulata': CalendarioEsame.query.filter_by(attivita='lezione_simulata').count(),
+            'altro': CalendarioEsame.query.filter_by(attivita='altro').count()
         }
     }
     
@@ -762,6 +769,116 @@ def scarica_excel():
         temp_path = f.name
     
     return send_file(temp_path, as_attachment=True, download_name='esami_pef.xlsx', 
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.route('/scarica_excel_date')
+def scarica_excel_date():
+    """Genera un file Excel con tutte le date degli esami"""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Date Esami PEF"
+    
+    # Headers
+    headers = ['Data', 'Ora Inizio', 'Ora Fine', 'Classe Concorso', 'Tipo Attività', 'Modalità', 'Sede', 'Note']
+    for col, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col, value=header)
+    
+    esami = Esame.query.all()
+    row_counter = 2  # Inizia dalla seconda riga dopo l'header
+    
+    for esame in esami:
+        # Ottieni il nome della classe di concorso
+        classe_concorso_nome = dict(CLASSI_CONCORSO).get(esame.classe_concorso, esame.classe_concorso)
+        
+        # Aggiungi data principale dell'esame
+        if esame.data_inizio:
+            ws.cell(row=row_counter, column=1, value=esame.data_inizio.strftime('%d/%m/%Y'))
+            ws.cell(row=row_counter, column=2, value=esame.data_inizio.strftime('%H:%M'))
+            ws.cell(row=row_counter, column=3, value=esame.data_fine.strftime('%H:%M') if esame.data_fine else "")
+            ws.cell(row=row_counter, column=4, value=classe_concorso_nome)
+            ws.cell(row=row_counter, column=5, value="Esame Principale")
+            ws.cell(row=row_counter, column=6, value=esame.modalita)
+            ws.cell(row=row_counter, column=7, value=esame.sede or '')
+            ws.cell(row=row_counter, column=8, value=esame.note or '')
+            row_counter += 1
+        
+        # Aggiungi le date del calendario esami (date aggiuntive)
+        for data in esame.calendario_esami:
+            attivita_nome = dict(TIPI_ATTIVITA).get(data.attivita, 'Altro')
+            
+            ws.cell(row=row_counter, column=1, value=data.data_inizio.strftime('%d/%m/%Y'))
+            ws.cell(row=row_counter, column=2, value=data.data_inizio.strftime('%H:%M'))
+            ws.cell(row=row_counter, column=3, value=data.data_fine.strftime('%H:%M'))
+            ws.cell(row=row_counter, column=4, value=classe_concorso_nome)
+            ws.cell(row=row_counter, column=5, value=attivita_nome)
+            ws.cell(row=row_counter, column=6, value=data.modalita)
+            ws.cell(row=row_counter, column=7, value=data.sede or '')
+            ws.cell(row=row_counter, column=8, value="")  # Non ci sono note per le date aggiuntive
+            
+            row_counter += 1
+    
+    # Applica formattazione per migliorare la leggibilità
+    for col in range(1, len(headers) + 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 15
+    
+    # Aggiungi filtri all'header
+    ws.auto_filter.ref = f"A1:{openpyxl.utils.get_column_letter(len(headers))}{row_counter-1}"
+    
+    # Salva il file temporaneo
+    with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.xlsx') as f:
+        wb.save(f.name)
+        temp_path = f.name
+    
+    return send_file(temp_path, as_attachment=True, download_name='date_esami_pef.xlsx', 
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.route('/scarica_excel_commissioni')
+def scarica_excel_commissioni():
+    """Genera un file Excel con tutti i membri delle commissioni, un record per ogni classe di concorso"""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Commissioni Esami PEF"
+    
+    # Headers
+    headers = ['Classe Concorso', 'Nome', 'Cognome', 'Tipologia', 'Ruolo', 'Profilo', 'Email', 'Telefono', 'Note']
+    for col, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col, value=header)
+    
+    # Ottieni tutti gli esami con le loro commissioni
+    esami = Esame.query.all()
+    row_counter = 2  # Inizia dalla seconda riga dopo l'header
+    
+    for esame in esami:
+        # Ottieni il nome della classe di concorso
+        classe_concorso_nome = dict(CLASSI_CONCORSO).get(esame.classe_concorso, esame.classe_concorso)
+        
+        # Aggiungi ogni membro della commissione
+        for commissione in esame.commissioni:
+            ws.cell(row=row_counter, column=1, value=classe_concorso_nome)
+            ws.cell(row=row_counter, column=2, value=commissione.nome_membro)
+            ws.cell(row=row_counter, column=3, value=commissione.cognome_membro)
+            ws.cell(row=row_counter, column=4, value='Titolare' if commissione.tipologia == 'T' else 'Supplente')
+            ws.cell(row=row_counter, column=5, value=dict(RUOLI_COMMISSIONE).get(commissione.ruolo, commissione.ruolo))
+            ws.cell(row=row_counter, column=6, value=dict(PROFILI_COMMISSIONE).get(commissione.profilo, commissione.profilo))
+            ws.cell(row=row_counter, column=7, value=commissione.email or '')
+            ws.cell(row=row_counter, column=8, value=commissione.telefono or '')
+            ws.cell(row=row_counter, column=9, value=commissione.note or '')
+            
+            row_counter += 1
+    
+    # Applica formattazione per migliorare la leggibilità
+    for col in range(1, len(headers) + 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 15
+    
+    # Aggiungi filtri all'header
+    ws.auto_filter.ref = f"A1:{openpyxl.utils.get_column_letter(len(headers))}{row_counter-1}"
+    
+    # Salva il file temporaneo
+    with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.xlsx') as f:
+        wb.save(f.name)
+        temp_path = f.name
+    
+    return send_file(temp_path, as_attachment=True, download_name='commissioni_esami_pef.xlsx', 
                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 # API Routes
