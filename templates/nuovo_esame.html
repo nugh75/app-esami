@@ -87,7 +87,7 @@
                                 Aggiungi Membro Commissione
                             </button>
                             <small class="form-text text-muted d-block mt-2">
-                                Aggiungi i membri della commissione d'esame. Puoi includere presidente, docenti e tutor coordinatori
+                                Aggiungi i membri della commissione d'esame. Puoi includere presidente, docenti interni, esperti esterni e referenti USR
                             </small>
                         </div>
                     </div>
@@ -181,6 +181,7 @@
                             id="${isPrincipale ? 'modalita_principale' : 'data_aggiuntiva_modalita_' + contatoreDateEsame}" ${required}>
                         <option value="online">Online</option>
                         <option value="presenza">In Presenza</option>
+                        <option value="mista">Mista</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -321,41 +322,41 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">
+                        <i class="mdi mdi-bookmark-outline me-1"></i>Tipologia
+                    </label>
+                    <select class="form-select" name="commissione_tipologia_${contatoreMembriCommissione}" required>
+                        <option value="">Seleziona...</option>
+                        {% for value, label in TIPOLOGIE_COMMISSIONE %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
                     <label class="form-label">
                         <i class="mdi mdi-account-tie me-1"></i>Ruolo
                     </label>
                     <select class="form-select" name="commissione_ruolo_${contatoreMembriCommissione}" required>
-                        <option value="">Seleziona ruolo...</option>
-                        <option value="presidente">Presidente</option>
-                        <option value="docente">Docente</option>
-                        <option value="tutor_coordinatore">Tutor Coordinatore</option>
+                        <option value="">Seleziona...</option>
+                        {% for value, label in RUOLI_COMMISSIONE %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label class="form-label">
-                        <i class="mdi mdi-school me-1"></i>Titolo Accademico
+                        <i class="mdi mdi-account-group me-1"></i>Profilo
                     </label>
-                    <select class="form-select" name="commissione_titolo_${contatoreMembriCommissione}">
+                    <select class="form-select" name="commissione_profilo_${contatoreMembriCommissione}" required>
                         <option value="">Seleziona...</option>
-                        <option value="prof">Prof.</option>
-                        <option value="prof_ssa">Prof.ssa</option>
-                        <option value="dott">Dott.</option>
-                        <option value="dott_ssa">Dott.ssa</option>
-                        <option value="ing">Ing.</option>
-                        <option value="arch">Arch.</option>
-                        <option value="avv">Avv.</option>
+                        {% for value, label in PROFILI_COMMISSIONE %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">
-                        <i class="mdi mdi-domain me-1"></i>Università/Istituzione
-                    </label>
-                    <input type="text" class="form-control" name="commissione_affiliazione_${contatoreMembriCommissione}" 
-                           placeholder="Università o istituzione di appartenenza">
-                </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">
                         <i class="mdi mdi-email me-1"></i>Email
@@ -363,25 +364,12 @@
                     <input type="email" class="form-control" name="commissione_email_${contatoreMembriCommissione}" 
                            placeholder="email@esempio.it">
                 </div>
-            </div>
-            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">
                         <i class="mdi mdi-phone me-1"></i>Telefono
                     </label>
                     <input type="tel" class="form-control" name="commissione_telefono_${contatoreMembriCommissione}" 
                            placeholder="+39 xxx xxx xxxx">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <div class="form-check mt-4">
-                        <input class="form-check-input" type="checkbox" 
-                               name="commissione_esterno_${contatoreMembriCommissione}" 
-                               id="esterno_${contatoreMembriCommissione}">
-                        <label class="form-check-label" for="esterno_${contatoreMembriCommissione}">
-                            <i class="mdi mdi-star text-warning me-1"></i>
-                            Esterno USR Regione Lazio
-                        </label>
-                    </div>
                 </div>
             </div>
             <div class="mb-3">

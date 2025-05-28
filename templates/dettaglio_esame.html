@@ -76,8 +76,8 @@
                             <tr>
                                 <td><strong><i class="mdi mdi-laptop me-2"></i>Modalità:</strong></td>
                                 <td>
-                                    <span class="badge {{ 'bg-success' if esame.modalita == 'online' else 'bg-primary' }}">
-                                        <i class="mdi mdi-{{ 'laptop' if esame.modalita == 'online' else 'map-marker' }} me-1"></i>
+                                    <span class="badge {{ 'bg-success' if esame.modalita == 'online' else ('bg-warning' if esame.modalita == 'mista' else 'bg-primary') }}">
+                                        <i class="mdi mdi-{{ 'laptop' if esame.modalita == 'online' else ('swap-horizontal' if esame.modalita == 'mista' else 'map-marker') }} me-1"></i>
                                         {{ esame.modalita.title() }}
                                     </span>
                                 </td>
@@ -119,7 +119,7 @@
                 </button>
             </div>
             <div class="card-body">
-                {% if esame.date_aggiuntive %}
+                {% if esame.calendario_esami %}
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -133,12 +133,12 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for data in esame.date_aggiuntive %}
+                                {% for data in esame.calendario_esami %}
                                 <tr>
                                     <td>{{ data.data_inizio.strftime('%d/%m/%Y alle %H:%M') }}</td>
                                     <td>{{ data.data_fine.strftime('%d/%m/%Y alle %H:%M') }}</td>
                                     <td>
-                                        <span class="badge {{ 'bg-success' if data.modalita == 'online' else 'bg-primary' }}">
+                                        <span class="badge {{ 'bg-success' if data.modalita == 'online' else ('bg-warning' if data.modalita == 'mista' else 'bg-primary') }}">
                                             {{ data.modalita.title() }}
                                         </span>
                                     </td>
@@ -208,10 +208,10 @@
                             <thead>
                                 <tr>
                                     <th>Nome e Cognome</th>
+                                    <th>Tipologia</th>
                                     <th>Ruolo</th>
-                                    <th>Titolo/Affiliazione</th>
+                                    <th>Profilo</th>
                                     <th>Contatti</th>
-                                    <th>USR Lazio</th>
                                     <th>Azioni</th>
                                 </tr>
                             </thead>
@@ -220,38 +220,36 @@
                                 <tr>
                                     <td>
                                         <div class="d-flex flex-column">
-                                            <strong>
-                                                {% if membro.titolo_accademico %}
-                                                    {% if membro.titolo_accademico == 'prof' %}Prof.
-                                                    {% elif membro.titolo_accademico == 'prof_ssa' %}Prof.ssa
-                                                    {% elif membro.titolo_accademico == 'dott' %}Dott.
-                                                    {% elif membro.titolo_accademico == 'dott_ssa' %}Dott.ssa
-                                                    {% elif membro.titolo_accademico == 'ing' %}Ing.
-                                                    {% elif membro.titolo_accademico == 'arch' %}Arch.
-                                                    {% elif membro.titolo_accademico == 'avv' %}Avv.
-                                                    {% endif %}
-                                                {% endif %}
-                                                {{ membro.nome_membro }} {{ membro.cognome_membro }}
-                                            </strong>
-                                            {% if membro.is_esterno_usr_lazio %}
-                                                <small class="text-warning">
-                                                    <i class="mdi mdi-star me-1"></i>Esterno USR Lazio
-                                                </small>
-                                            {% endif %}
+                                            <strong>{{ membro.nome_membro }} {{ membro.cognome_membro }}</strong>
                                         </div>
+                                    </td>
+                                    <td>
+                                        {% if membro.tipologia == 'T' %}
+                                            <span class="badge bg-primary">
+                                                <i class="mdi mdi-account-check me-1"></i>Titolare
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="mdi mdi-account-outline me-1"></i>Supplente
+                                            </span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if membro.ruolo == 'presidente' %}
                                             <span class="badge bg-primary">
                                                 <i class="mdi mdi-crown me-1"></i>Presidente
                                             </span>
-                                        {% elif membro.ruolo == 'docente' %}
+                                        {% elif membro.ruolo == 'docente_interno' %}
                                             <span class="badge bg-info">
-                                                <i class="mdi mdi-account-tie me-1"></i>Docente
+                                                <i class="mdi mdi-account-tie me-1"></i>Docente interno
                                             </span>
-                                        {% elif membro.ruolo == 'tutor_coordinatore' %}
+                                        {% elif membro.ruolo == 'esperto_esterno' %}
+                                            <span class="badge bg-warning">
+                                                <i class="mdi mdi-account-star me-1"></i>Esperto esterno
+                                            </span>
+                                        {% elif membro.ruolo == 'referente_usr' %}
                                             <span class="badge bg-success">
-                                                <i class="mdi mdi-account-supervisor me-1"></i>Tutor Coordinatore
+                                                <i class="mdi mdi-account-supervisor me-1"></i>Referente USR
                                             </span>
                                         {% else %}
                                             <span class="badge bg-secondary">{{ membro.ruolo or '-' }}</span>
@@ -259,9 +257,8 @@
                                     </td>
                                     <td>
                                         <div class="d-flex flex-column">
-                                            {% if membro.affiliazione %}
-                                                <small><i class="mdi mdi-domain me-1"></i>{{ membro.affiliazione }}</small>
-                                            {% endif %}
+                                            {% set profilo_dict = dict(PROFILI_COMMISSIONE) %}
+                                            <small>{{ profilo_dict.get(membro.profilo, membro.profilo) }}</small>
                                         </div>
                                     </td>
                                     <td>
@@ -273,15 +270,6 @@
                                                 <small><i class="mdi mdi-phone me-1"></i>{{ membro.telefono }}</small>
                                             {% endif %}
                                         </div>
-                                    </td>
-                                    <td>
-                                        {% if membro.is_esterno_usr_lazio %}
-                                            <span class="badge bg-warning">
-                                                <i class="mdi mdi-check me-1"></i>Sì
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">No</span>
-                                        {% endif %}
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
@@ -358,6 +346,7 @@
                         <select name="modalita" class="form-select" required>
                             <option value="online">Online</option>
                             <option value="presenza">In Presenza</option>
+                            <option value="mista">Mista</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -434,42 +423,42 @@
                     </div>
                     
                     <div class="row">
-                        <!-- Ruolo e Titolo Accademico -->
+                        <!-- Tipologia e Ruolo -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-account-badge me-1"></i>Tipologia
+                            </label>
+                            <select name="tipologia" class="form-select" required>
+                                <option value="">Seleziona tipologia...</option>
+                                {% for valore, descrizione in TIPOLOGIE_COMMISSIONE %}
+                                <option value="{{ valore }}">{{ descrizione }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">
                                 <i class="mdi mdi-account-tie me-1"></i>Ruolo
                             </label>
                             <select name="ruolo" class="form-select" required>
                                 <option value="">Seleziona ruolo...</option>
-                                <option value="presidente">Presidente</option>
-                                <option value="docente">Docente</option>
-                                <option value="tutor_coordinatore">Tutor Coordinatore</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">
-                                <i class="mdi mdi-school me-1"></i>Titolo Accademico
-                            </label>
-                            <select name="titolo_accademico" class="form-select">
-                                <option value="">Seleziona...</option>
-                                <option value="prof">Prof.</option>
-                                <option value="prof_ssa">Prof.ssa</option>
-                                <option value="dott">Dott.</option>
-                                <option value="dott_ssa">Dott.ssa</option>
-                                <option value="ing">Ing.</option>
-                                <option value="arch">Arch.</option>
-                                <option value="avv">Avv.</option>
+                                {% for valore, descrizione in RUOLI_COMMISSIONE %}
+                                <option value="{{ valore }}">{{ descrizione }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                     </div>
                     
-                    <!-- Affiliazione -->
+                    <!-- Profilo -->
                     <div class="mb-3">
                         <label class="form-label">
-                            <i class="mdi mdi-domain me-1"></i>Università/Istituzione
+                            <i class="mdi mdi-school me-1"></i>Profilo
                         </label>
-                        <input type="text" name="affiliazione" class="form-control" 
-                               placeholder="Es: Università degli Studi di Roma 'La Sapienza'">
+                        <select name="profilo" class="form-select" required>
+                            <option value="">Seleziona profilo...</option>
+                            {% for valore, descrizione in PROFILI_COMMISSIONE %}
+                            <option value="{{ valore }}">{{ descrizione }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     
                     <div class="row">
@@ -497,15 +486,6 @@
                         </label>
                         <textarea name="note" class="form-control" rows="2" 
                                   placeholder="Note aggiuntive sul membro (opzionale)"></textarea>
-                    </div>
-                    
-                    <!-- Esterno USR Lazio -->
-                    <div class="form-check">
-                        <input type="checkbox" name="is_esterno_usr_lazio" class="form-check-input" id="esterno">
-                        <label class="form-check-label" for="esterno">
-                            <i class="mdi mdi-star text-warning me-1"></i>
-                            Membro esterno USR Regione Lazio
-                        </label>
                     </div>
                 </div>
                 <div class="modal-footer">

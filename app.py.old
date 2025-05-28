@@ -158,8 +158,6 @@ class Commissione(db.Model):
 class EsameForm(FlaskForm):
     classe_concorso = SelectField('Classe di Concorso', choices=CLASSI_CONCORSO, validators=[DataRequired()])
     percorsi_pef = SelectMultipleField('Percorsi PEF', choices=PERCORSI_PEF, validators=[DataRequired()])
-    data_inizio = DateTimeField('Data e Ora Inizio', validators=[Optional()], format='%Y-%m-%dT%H:%M')
-    data_fine = DateTimeField('Data e Ora Fine', validators=[Optional()], format='%Y-%m-%dT%H:%M')
     modalita = SelectField('Modalità', choices=[('online', 'Online'), ('presenza', 'In Presenza'), ('mista', 'Mista')], validators=[DataRequired()])
     sede = StringField('Sede', validators=[Optional()])
     note = TextAreaField('Note', validators=[Optional()])
@@ -344,9 +342,9 @@ def nuovo_esame():
                         esame_id=esame.id,
                         nome_membro=nome,
                         cognome_membro=cognome,
-                        tipologia=tipologia,
+                        tipologia=request.form.get(f'commissione_tipologia_{contatore_commissione}', 'T'),
                         ruolo=ruolo,
-                        profilo=profilo,
+                        profilo=request.form.get(f'commissione_profilo_{contatore_commissione}', 'esterno_altro'),
                         email=email,
                         telefono=telefono,
                         note=note
@@ -726,6 +724,140 @@ def scarica_excel():
         percorsi_str = ', '.join(percorsi_nomi)
         ws.cell(row=row, column=3, value=percorsi_str)
 
+        # Verifica che data_inizio e data_fine esistano
+        if hasattr(esame, 'data_inizio') and esame.data_inizio:
+            ws.cell(row=row, column=4, value=esame.data_inizio.strftime('%d/%m/%Y %H:%M'))
+        else:
+            ws.cell(row=row, column=4, value='Non definita')
+            
+        if hasattr(esame, 'data_fine') and esame.data_fine:
+            ws.cell(row=row, column=5, value=esame.data_fine.strftime('%d/%m/%Y %H:%M'))
+        else:
+            ws.cell(row=row, column=5, value='Non definita')
+            
+        ws.cell(row=row, column=6, value=esame.modalita)
+        ws.cell(row=row, column=7, value=esame.sede or '')
+        ws.cell(row=row, column=8, value=esame.note or '')
+        
+        # Commissione
+        commissione_str = '; '.join([
+            f"{c.nome_membro} {c.cognome_membro} ({c.ruolo}, {c.tipologia})"
+            for c in esame.commissioni
+        ])
+        ws.cell(row=row, column=9, value=commissione_str)
+        
+        # Date aggiuntive (ora chiamate calendario_esami)
+        calendario = getattr(esame, 'calendario_esami', [])
+        date_agg_str = '; '.join([
+            f"{d.data_inizio.strftime('%d/%m/%Y %H:%M')} - {d.data_fine.strftime('%d/%m/%Y %H:%M')} ({d.modalita}) - {dict(TIPI_ATTIVITA).get(getattr(d, 'attivita', 'altro'), 'Non specificato')}" 
+            for d in calendario
+        ])
+        ws.cell(row=row, column=10, value=date_agg_str)
+    
+    # Salva il file temporaneo
+    with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.xlsx') as f:
+        wb.save(f.name)
+        temp_path = f.name
+    
+    return send_file(temp_path, as_attachment=True, download_name='esami_pef.xlsx', 
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+# API Routes
+@app.route('/api/classi-concorso')
+def api_classi_concorso():
+    """API per ottenere la lista delle classi di concorso"""
+    return jsonify(dict(CLASSI_CONCORSO))
+
+@app.route('/api/percorsi-pef')
+def api_percorsi_pef():
+    """API per ottenere la lista dei percorsi PEF"""
+    return jsonify(dict(PERCORSI_PEF))
+
+@app.route('/api/esami')
+def api_esami():
+    """API per ottenere la lista degli esami in formato JSON"""
+    esami = Esame.query.all()
+    esami_json = []
+    for esame in esami:
+        esame_data = {
+            'id': esame.id,
+            'classe_concorso': esame.classe_concorso,
+            'percorsi_pef': esame.get_percorsi_list(),
+            'data_inizio': esame.data_inizio.isoformat() if esame.data_inizio else None,
+            'data_fine': esame.data_fine.isoformat() if esame.data_fine else None,
+            'modalita': esame.modalita,
+            'sede': esame.sede,
+            'note': esame.note,
+            'commissioni': [
+                {
+                    'id': c.id,
+                    'nome_membro': c.nome_membro,
+                    'cognome_membro': c.cognome_membro,
+                    'ruolo': c.ruolo,
+                    'profilo': c.profilo,
+                    'email': c.email,
+                    'telefono': c.telefono,
+                    'note': c.note
+                } for c in esame.commissioni
+            ],
+            'calendario_esami': [
+                {
+                    'data_inizio': d.data_inizio.isoformat(),
+                    'data_fine': d.data_fine.isoformat(),
+                    'modalita': d.modalita,
+                    'sede': d.sede,
+                    'attivita': d.attivita if hasattr(d, 'attivita') else 'altro'
+                } for d in esame.calendario_esami
+            ]
+        }
+        esami_json.append(esame_data)
+    return jsonify(esami_json)
+
+@app.route('/calendario')
+def calendario():
+    """Visualizza tutte le date degli esami in formato calendario"""
+    # Ottieni tutti gli esami con le loro date principali e del calendario
+    esami = Esame.query.all()
+    
+    # Prepara gli eventi per il calendario
+    eventi = []
+    
+    for esame in esami:
+        # Aggiungi data principale dell'esame
+        if esame.data_inizio:
+            classe_concorso_nome = dict(CLASSI_CONCORSO).get(esame.classe_concorso, esame.classe_concorso)
+            percorsi_str = ', '.join([dict(PERCORSI_PEF).get(p, p) for p in esame.get_percorsi_list()])
+            
+            # Evento principale
+            eventi.append({
+                'id': f'esame_{esame.id}',
+                'title': f"{classe_concorso_nome}",
+                'description': f"{percorsi_str} - {esame.note or ''}",
+                'start': esame.data_inizio.isoformat(),
+                'end': esame.data_fine.isoformat() if esame.data_fine else None,
+                'url': url_for('dettaglio_esame', id=esame.id),
+                'color': '#3788d8',  # Blu per eventi principali
+                'textColor': '#ffffff',
+                'allDay': False
+            })
+        
+        # Aggiungi date del calendario esami
+        for data in esame.calendario_esami:
+            attivita_nome = dict(TIPI_ATTIVITA).get(data.attivita, 'Altro')
+            eventi.append({
+                'id': f'calendario_{data.id}',
+                'title': f"{classe_concorso_nome} - {attivita_nome}",
+                'description': f"{percorsi_str} - {data.sede or ''}",
+                'start': data.data_inizio.isoformat(),
+                'end': data.data_fine.isoformat(),
+                'url': url_for('dettaglio_esame', id=esame.id),
+                'color': '#28a745',  # Verde per date aggiuntive
+                'textColor': '#ffffff',
+                'allDay': False
+            })
+    
+    return render_template('calendario.html', eventi=eventi)
+        
         # Verifica che data_inizio e data_fine esistano
         if hasattr(esame, 'data_inizio') and esame.data_inizio:
             ws.cell(row=row, column=4, value=esame.data_inizio.strftime('%d/%m/%Y %H:%M'))

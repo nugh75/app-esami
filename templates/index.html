@@ -59,6 +59,94 @@
     </div>
 </div>
 
+<!-- Statistiche Commissione -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="mdi mdi-account-multiple me-2"></i>
+                    Statistiche Commissioni
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Tipologia e ruoli</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Titolari</th>
+                                        <td>{{ stats.commissioni.titolari }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Supplenti</th>
+                                        <td>{{ stats.commissioni.supplenti }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Presidenti</th>
+                                        <td>{{ stats.commissioni.presidenti }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Docenti interni</th>
+                                        <td>{{ stats.commissioni.docenti_interni }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Esperti esterni</th>
+                                        <td>{{ stats.commissioni.esperti_esterni }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Referenti USR</th>
+                                        <td>{{ stats.commissioni.referenti_usr }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Profili</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Professori / Ricercatori Roma Tre</th>
+                                        <td>{{ stats.profili.prof_ricercatori }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Assegnisti di ricerca</th>
+                                        <td>{{ stats.profili.assegnisti }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Cultori della materia</th>
+                                        <td>{{ stats.profili.cultori }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Docenti a contratto</th>
+                                        <td>{{ stats.profili.docenti_contratto }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Tutor coordinatori</th>
+                                        <td>{{ stats.profili.tutor }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Referenti USR</th>
+                                        <td>{{ stats.profili.ref_usr }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Altri esterni</th>
+                                        <td>{{ stats.profili.esterni }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Filtri di Ricerca -->
 <div class="card mb-4">
     <div class="card-body">
@@ -78,22 +166,12 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label">Percorso PEF</label>
-                <select class="form-select" name="percorso">
-                    <option value="">Tutti</option>
-                    {% for valore, descrizione in percorsi_pef %}
-                        <option value="{{ valore }}" {{ 'selected' if percorso_filter == valore }}>
-                            {{ descrizione.split(' - ')[0] }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2">
                 <label class="form-label">Modalità</label>
                 <select class="form-select" name="modalita">
                     <option value="">Tutte</option>
                     <option value="online" {{ 'selected' if modalita_filter == 'online' }}>Online</option>
                     <option value="presenza" {{ 'selected' if modalita_filter == 'presenza' }}>In Presenza</option>
+                    <option value="mista" {{ 'selected' if modalita_filter == 'mista' }}>Mista</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -214,7 +292,7 @@
                                         <small class="text-muted">
                                             {{ esame.data_inizio.strftime('%H:%M') }} - {{ esame.data_fine.strftime('%H:%M') }}
                                         </small>
-                                        {% if esame.date_aggiuntive %}
+                                        {% if esame.calendario_esami %}
                                             <br>
                                             <small class="text-info">
                                                 <i class="mdi mdi-plus-circle"></i>
@@ -239,11 +317,11 @@
                                         {% if esame.commissioni %}
                                             <small>
                                                 {{ esame.commissioni|length }} membri
-                                                {% set esterni = esame.commissioni|selectattr('is_esterno_usr_lazio')|list %}
-                                                {% if esterni %}
+                                                {% set esperti_esterni = esame.commissioni|selectattr('profilo', 'equalto', 'esperto_esterno')|list %}
+                                                {% if esperti_esterni %}
                                                     <br><span class="text-warning">
                                                         <i class="mdi mdi-star"></i>
-                                                        {{ esterni|length }} esterni USR Lazio
+                                                        {{ esperti_esterni|length }} esperti esterni
                                                     </span>
                                                 {% endif %}
                                             </small>

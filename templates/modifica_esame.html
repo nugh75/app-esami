@@ -147,8 +147,8 @@
                             </h6>
                         </div>
                         <div class="card-body">
-                            {% if esame.date_aggiuntive %}
-                                {% for data in esame.date_aggiuntive %}
+                            {% if esame.calendario_esami %}
+                                {% for data in esame.calendario_esami %}
                                 <div class="border rounded p-2 mb-2">
                                     <div class="row align-items-center">
                                         <div class="col-md-2">
@@ -165,7 +165,7 @@
                                         </div>
                                         <div class="col-md-2">
                                             <small class="text-muted">Modalità:</small><br>
-                                            <span class="badge {{ 'bg-success' if data.modalita == 'online' else 'bg-primary' }}">
+                                            <span class="badge {{ 'bg-success' if data.modalita == 'online' else ('bg-warning' if data.modalita == 'mista' else 'bg-primary') }}">
                                                 {{ data.modalita.title() }}
                                             </span>
                                         </div>
@@ -323,6 +323,7 @@
                     <select class="form-select" name="data_aggiuntiva_modalita_${contatoreDateAggiuntive}">
                         <option value="online">Online</option>
                         <option value="presenza">In Presenza</option>
+                        <option value="mista">Mista</option>
                     </select>
                 </div>
                 <div class="col-md-2">

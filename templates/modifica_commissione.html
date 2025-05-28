@@ -49,7 +49,21 @@
                         </div>
                         
                         <div class="row">
-                            <!-- Ruolo e Titolo Accademico -->
+                            <!-- Tipologia e Ruolo -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.tipologia.id }}" class="form-label">
+                                    <i class="mdi mdi-account-badge me-1"></i>{{ form.tipologia.label.text }}
+                                </label>
+                                {{ form.tipologia(class="form-select") }}
+                                {% if form.tipologia.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.tipologia.errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.ruolo.id }}" class="form-label">
                                     <i class="mdi mdi-account-tie me-1"></i>{{ form.ruolo.label.text }}
@@ -63,31 +77,17 @@
                                     </div>
                                 {% endif %}
                             </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.titolo_accademico.id }}" class="form-label">
-                                    <i class="mdi mdi-school me-1"></i>{{ form.titolo_accademico.label.text }}
-                                </label>
-                                {{ form.titolo_accademico(class="form-select") }}
-                                {% if form.titolo_accademico.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {% for error in form.titolo_accademico.errors %}
-                                            <div>{{ error }}</div>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
                         </div>
                         
-                        <!-- Affiliazione -->
+                        <!-- Profilo -->
                         <div class="mb-3">
-                            <label for="{{ form.affiliazione.id }}" class="form-label">
-                                <i class="mdi mdi-domain me-1"></i>{{ form.affiliazione.label.text }}
+                            <label for="{{ form.profilo.id }}" class="form-label">
+                                <i class="mdi mdi-school me-1"></i>{{ form.profilo.label.text }}
                             </label>
-                            {{ form.affiliazione(class="form-control") }}
-                            {% if form.affiliazione.errors %}
+                            {{ form.profilo(class="form-select") }}
+                            {% if form.profilo.errors %}
                                 <div class="text-danger small mt-1">
-                                    {% for error in form.affiliazione.errors %}
+                                    {% for error in form.profilo.errors %}
                                         <div>{{ error }}</div>
                                     {% endfor %}
                                 </div>
@@ -122,16 +122,6 @@
                                         {% endfor %}
                                     </div>
                                 {% endif %}
-                            </div>
-                        </div>
-                        
-                        <!-- Esterno USR Lazio -->
-                        <div class="mb-3">
-                            <div class="form-check">
-                                {{ form.is_esterno_usr_lazio(class="form-check-input") }}
-                                <label class="form-check-label" for="{{ form.is_esterno_usr_lazio.id }}">
-                                    <i class="mdi mdi-account-check me-1"></i>{{ form.is_esterno_usr_lazio.label.text }}
-                                </label>
                             </div>
                         </div>
                         
