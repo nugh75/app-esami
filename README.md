@@ -1,59 +1,43 @@
 # Gestione Esami PEF - Applicazione Web
 
-Un'applicazione web sviluppata in Python Flask con Material Design per la gestione degli esami del percorso PEF (Percorsi di formazione per l'acquisizione di 60, 30 o 36 CFU) per classe di concorso.
+Un'applicazione web sviluppata in Python Flask per la gestione degli esami del percorso PEF (Percorsi di formazione per l'acquisizione di 60 CFU) per classe di concorso, con particolare attenzione alle esigenze delle commissioni d'esame.
 
-## Caratteristiche
+## Caratteristiche principali
 
-### 🎯 Funzionalità Principali
-- **Gestione Completa Esami**: Creazione, modifica ed eliminazione degli esami PEF
-- **Classi di Concorso**: Supporto per tutte le classi di concorso (A001, A007, A008, ecc.)
-- **Percorsi PEF**: Gestione di tutti i percorsi formativi DPCM 4 agosto 2023
-- **Date Multiple**: Possibilità di aggiungere date aggiuntive per ogni esame
-- **Modalità Flessibili**: Supporto per esami online e in presenza
-- **Commissioni**: Gestione membri commissione con evidenziazione esterni USR Lazio
+### 🎯 Funzionalità
+- **Gestione completa esami**: Creazione, modifica ed eliminazione degli esami PEF
+- **Calendario attività**: Pianificazione di tutte le attività delle commissioni (definizione argomenti, prove scritte, lezioni simulate, ecc.)
+- **Gestione commissioni**: Composizione dettagliata delle commissioni con ruoli e profili
+- **Dashboard statistiche**: Visualizzazione in tempo reale dei dati sulle attività e commissioni
+- **Export dati**: Esportazione di date e commissioni in formato Excel
 
-### 🔍 Ricerca e Filtri
-- Ricerca testuale per classe, sede, note
-- Filtri per classe di concorso, percorso PEF, modalità
-- Dashboard con statistiche in tempo reale
+### 📊 Statistiche e monitoraggio
+- Numero di esami per modalità (online, in presenza, mista)
+- Distribuzione dei membri di commissione per ruolo e profilo
+- Ripartizione delle attività per tipologia (prove scritte, lezioni simulate, ecc.)
+- Filtri avanzati per classe di concorso e modalità
 
-### 📊 Export e Download
-- **Calendario iCal**: Download di calendario compatibile con Google Calendar, Outlook
-- **File Excel**: Export completo di tutti i dati in formato xlsx
-- **API JSON**: Endpoint per integrazione con altre applicazioni
+### 🧩 Tipi di attività supportati
+- Definizione argomento prova scritta
+- Definizione argomento lezione simulata
+- Definizione criteri e griglie di valutazione
+- Prova scritta (in presenza)
+- Prova scritta (consegna)
+- Valutazione prova scritta
+- Lezione simulata (in presenza)
+- Altri tipi di attività personalizzabili
 
-### 🎨 Interfaccia Utente
-- **Material Design**: Interfaccia moderna e responsiva
-- **Bootstrap**: Layout professionale e mobile-friendly
-- **Icone Material Design**: Set completo di icone intuitive
+## Tecnologie utilizzate
 
-## Struttura Tecnica
-
-### 🛠️ Tecnologie
+### 🛠️ Stack tecnologico
 - **Backend**: Python Flask
 - **Database**: SQLite con SQLAlchemy ORM
-- **Frontend**: HTML5, CSS3, Bootstrap, Material Design
+- **Frontend**: Bootstrap con Material Design Icons
 - **Forms**: Flask-WTF con validazione
 - **Export**: openpyxl (Excel), icalendar (iCal)
+- **Migrazioni DB**: Flask-Migrate (Alembic)
 
-### 📁 Struttura Progetto
-```
-app-esami/
-├── app.py                 # Applicazione Flask principale
-├── config.py             # Configurazioni ambiente
-├── requirements.txt      # Dipendenze Python
-├── instance/
-│   └── esami_pef.db      # Database SQLite
-├── templates/            # Template HTML
-│   ├── base.html
-│   ├── index.html
-│   ├── nuovo_esame.html
-│   ├── dettaglio_esame.html
-│   └── modifica_esame.html
-└── venv/                 # Ambiente virtuale Python
-```
-
-## Installazione e Avvio
+## Installazione e avvio
 
 ### Prerequisiti
 - Python 3.8+
@@ -62,7 +46,8 @@ app-esami/
 ### Setup
 ```bash
 # Clone del repository
-cd /path/to/project
+git clone https://github.com/username/app-esami.git
+cd app-esami
 
 # Creazione ambiente virtuale
 python3 -m venv venv
@@ -75,116 +60,66 @@ venv\Scripts\activate     # Windows
 # Installazione dipendenze
 pip install -r requirements.txt
 
-# Avvio applicazione
+# Avvio applicazione (porta standard 5000)
 python app.py
 ```
 
-L'applicazione sarà disponibile su `http://127.0.0.1:5000`
+Oppure utilizzare lo script di avvio per la porta 5005:
+```bash
+# Permessi di esecuzione
+chmod +x start_port5005.sh
 
-## Utilizzo
+# Avvio su porta 5005
+./start_port5005.sh
+```
 
-### 1. Dashboard Principale
-- Visualizzazione di tutti gli esami programmati
-- Statistiche in tempo reale (totale esami, online/presenza, commissioni)
+L'applicazione sarà disponibile su `http://127.0.0.1:5000` (o porta 5005 se si utilizza lo script alternativo)
+
+## Funzionalità principali
+
+### 1. Dashboard con statistiche
+- Panoramica completa degli esami programmati
+- Statistiche in tempo reale sugli esami, commissioni e tipi di attività
 - Filtri di ricerca avanzati
 
-### 2. Creazione Nuovo Esame
-- Selezione classe di concorso dal menu a tendina
-- Scelta del percorso PEF appropriato
-- Impostazione data/ora inizio e fine
-- Definizione modalità (online/presenza) e sede
+### 2. Gestione esami
+- Creazione e modifica degli esami per classe di concorso
+- Pianificazione date e orari
+- Aggiunta di attività specifiche per ogni data (riunioni commissione, prove, lezioni simulate)
 
-### 3. Gestione Commissioni
-- Aggiunta membri commissione
-- Definizione ruoli
-- Marcatura membri esterni USR Regione Lazio
+### 3. Commissioni d'esame
+- Composizione dettagliata della commissione
+- Supporto per titolari e supplenti
+- Gestione dei profili dei membri (docenti interni, esterni, referenti USR, ecc.)
 
-### 4. Date Aggiuntive
-- Possibilità di programmare sessioni multiple per lo stesso esame
-- Modalità diverse per ogni sessione
+### 4. Export dati
+- **Excel Date**: Esportazione di tutte le date degli esami con dettagli su attività
+- **Excel Commissioni**: Esportazione dei membri delle commissioni con un record per classe di concorso
+- **Calendario**: Download di file .ics per importazione in applicazioni calendario
 
-### 5. Export Dati
-- **Calendario**: Download file .ics importabile in qualsiasi calendario
-- **Excel**: Export completo con tutti i dettagli in formato .xlsx
+## Classi di concorso supportate
 
-## Classi di Concorso Supportate
+L'applicazione supporta tutte le principali classi di concorso, tra cui:
+- A001, A007, A008, A011, A012, A013, A017, A018, A019, A020
+- A022, A023, A026, A027, A028, A029, A030, A037, A040, A042
+- A045, A046, A050, A053, A054, A060, A061, A063, A064
+- AA24, AB24, AC24, AL24, B015
 
-L'applicazione supporta tutte le classi di concorso incluse nel bando PEF:
+## Manutenzione
 
-**Classe A (Scuola Secondaria)**
-- A001 – Arte e immagine nella scuola secondaria di I grado
-- A007 – Discipline audiovisive
-- A008 – Discipline geometriche, architettura, design d'arredamento e scenotecnica
-- A011 – Discipline letterarie e latino
-- A012 – Discipline letterarie negli istituti di istruzione secondaria di II grado
-- A013 – Discipline letterarie, latino e greco
-- A017 – Disegno e storia dell'arte
-- A018 – Filosofia e scienze umane
-- A019 – Filosofia e storia
-- A020 – Fisica
-- A022 – Italiano, storia, geografia nella scuola secondaria di I grado
-- A023 – Lingua italiana per discenti di lingua straniera (alloglotti)
-- A026 – Matematica
-- A027 – Matematica e fisica
-- A028 – Matematica e scienze
-- A029 – Musica negli istituti di istruzione secondaria di II grado
-- A030 – Musica nella scuola secondaria di I grado
-- A037 – Scienze e tecnologie delle costruzioni, tecnologie e tecniche di rappresentazione grafica
-- A040 – Tecnologie elettriche elettroniche
-- A042 – Scienze e tecnologie meccaniche
-- A045 – Scienze economico-aziendali
-- A046 – Scienze giuridico-economiche
-- A050 – Scienze naturali, chimiche e biologiche
-- A053 – Storia della musica
-- A054 – Storia dell'arte
-- A060 – Tecnologia nella scuola secondaria di I grado
-- A061 – Tecnologie e tecniche delle comunicazioni multimediali
-- A063 – Tecnologie musicali
-- A064 – Teoria, analisi e composizione
+### Backup
+L'applicazione genera automaticamente backup del database durante le operazioni di migrazione.
+I backup si trovano nella cartella `instance/` e seguono la convenzione:
+```
+esami_pef_backup_[tipo]_[data]_[ora].db
+```
 
-**Lingue Straniere**
-- AA24 – Lingua e cultura straniera (francese)
-- AB24 – Lingua e cultura straniera (inglese)
-- AC24 – Lingua e cultura straniera (spagnolo)
-- AL24 – Lingua e cultura straniera (arabo)
+### Migrazioni
+Quando viene modificata la struttura del database, viene generato un file di migrazione nella cartella `migrations/versions/`.
 
-**Classe B (Laboratori)**
-- B015 – Laboratori di scienze e tecnologie elettriche ed elettroniche
+## Supporto e contributi
 
-## Percorsi PEF
-
-- **PeF 60 CFU All. 1** - DPCM 4 ago 2023
-- **PeF 30 CFU All. 2** - DPCM 4 ago 2023
-- **PeF 36 CFU All. 5** - DPCM 4 ago 2023
-- **PeF 30 CFU Art. 13** - DPCM 4 ago 2023
-
-## API Endpoints
-
-L'applicazione espone API REST per integrazione:
-
-- `GET /api/classi-concorso` - Lista classi di concorso
-- `GET /api/percorsi-pef` - Lista percorsi PEF
-- `GET /api/esami` - Lista completa esami in JSON
-
-## Configurazione
-
-Il file `config.py` permette di configurare:
-- Chiavi segrete
-- Database URI
-- Limiti upload file
-- Durata sessioni
-- Configurazioni ambiente (development/production/testing)
-
-## Sicurezza
-
-- Validazione form con Flask-WTF
-- Protezione CSRF
-- Sanitizzazione input utente
-- Configurazioni separate per ambienti
-
-## Supporto e Contributi
-
-Per segnalazioni di bug o richieste di funzionalità, aprire una issue nel repository.
+Per segnalazioni di bug o richieste di funzionalità, contattare gli amministratori del progetto.
 
 ## Licenza
 
