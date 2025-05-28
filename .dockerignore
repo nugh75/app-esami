@@ -1,0 +1,21 @@
+# Git directory
+.git
+
+# Python virtual environment
+venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Database files (local)
+instance/*.db
+
+# Backup directories
+backups/
+
+# IDE/editor settings
+*.swp
+*.swo
+.vscode/
+.idea/
