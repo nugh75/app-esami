@@ -16,10 +16,13 @@ app = Flask(__name__)
 
 # Configurazione dell'applicazione
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'pef-esami-secret-key-2023'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///esami_pef.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or f'sqlite:///{os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance", "esami_pef.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+from flask_migrate import Migrate
+
+migrate = Migrate(app, db)
 
 # Classi di concorso
 CLASSI_CONCORSO = [
@@ -100,6 +103,8 @@ class Esame(db.Model):
     sede = db.Column(db.String(200))
     note = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    data_inizio = db.Column(db.DateTime)  # Aggiunto campo data_inizio
+    data_fine = db.Column(db.DateTime)    # Aggiunto campo data_fine
     
     # Relazione con il calendario esami (ex date aggiuntive)
     calendario_esami = db.relationship('CalendarioEsame', backref='esame', lazy=True, cascade='all, delete-orphan')
@@ -194,8 +199,13 @@ def index():
     if modalita_filter:
         query = query.filter(Esame.modalita == modalita_filter)
     
-    # Ordinamento per data
-    esami = query.order_by(Esame.data_inizio.desc()).all()
+    # Usa created_at per l'ordinamento per essere sicuri
+    try:
+        esami = query.order_by(Esame.created_at.desc()).all()
+    except Exception as e:
+        print(f"Errore nell'ordinamento: {e}")
+        # Fallback: carica senza ordinamento
+        esami = query.all()
     
     # Statistiche per il dashboard
     stats = {
@@ -631,25 +641,31 @@ def scarica_calendario():
         percorsi_nomi = [dict(PERCORSI_PEF)[p] for p in esame.get_percorsi_list()]
         percorsi_str = ', '.join(percorsi_nomi)
         
-        event = Event()
-        event.add('summary', f"Esame {esame.classe_concorso} - {percorsi_str}")
-        event.add('dtstart', esame.data_inizio)
-        event.add('dtend', esame.data_fine)
-        if esame.sede:
-            event.add('location', esame.sede)
-        if esame.note:
-            event.add('description', esame.note)
-        cal.add_component(event)
+        # Verifica che esame abbia data_inizio e data_fine
+        if hasattr(esame, 'data_inizio') and esame.data_inizio:
+            event = Event()
+            event.add('summary', f"Esame {esame.classe_concorso} - {percorsi_str}")
+            event.add('dtstart', esame.data_inizio)
+            if hasattr(esame, 'data_fine') and esame.data_fine:
+                event.add('dtend', esame.data_fine)
+            if esame.sede:
+                event.add('location', esame.sede)
+            if esame.note:
+                event.add('description', esame.note)
+            cal.add_component(event)
         
-        # Date aggiuntive
-        for data_add in esame.date_aggiuntive:
-            event_add = Event()
-            event_add.add('summary', f"Esame {esame.classe_concorso} - {percorsi_str} (Data aggiuntiva)")
-            event_add.add('dtstart', data_add.data_inizio)
-            event_add.add('dtend', data_add.data_fine)
-            if data_add.sede:
-                event_add.add('location', data_add.sede)
-            cal.add_component(event_add)
+        # Date aggiuntive (ora chiamate calendario_esami)
+        if hasattr(esame, 'calendario_esami'):
+            for data_add in esame.calendario_esami:
+                event_add = Event()
+                event_add.add('summary', f"Esame {esame.classe_concorso} - {percorsi_str} (Data aggiuntiva)")
+                event_add.add('dtstart', data_add.data_inizio)
+                event_add.add('dtend', data_add.data_fine)
+                if data_add.sede:
+                    event_add.add('location', data_add.sede)
+                if hasattr(data_add, 'attivita') and data_add.attivita:
+                    event_add.add('description', dict(TIPI_ATTIVITA).get(data_add.attivita, 'Altro'))
+                cal.add_component(event_add)
     
     # Salva il file temporaneo
     with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.ics') as f:
@@ -672,29 +688,41 @@ def scarica_excel():
     esami = Esame.query.all()
     for row, esame in enumerate(esami, 2):
         ws.cell(row=row, column=1, value=esame.id)
-        ws.cell(row=row, column=2, value=dict(CLASSI_CONCORSO)[esame.classe_concorso])
+        ws.cell(row=row, column=2, value=dict(CLASSI_CONCORSO).get(esame.classe_concorso, esame.classe_concorso))
         
         # Gestione percorsi multipli
-        percorsi_nomi = [dict(PERCORSI_PEF)[p] for p in esame.get_percorsi_list()]
+        percorsi_nomi = [dict(PERCORSI_PEF).get(p, p) for p in esame.get_percorsi_list()]
         percorsi_str = ', '.join(percorsi_nomi)
         ws.cell(row=row, column=3, value=percorsi_str)
         
-        ws.cell(row=row, column=4, value=esame.data_inizio.strftime('%d/%m/%Y %H:%M'))
-        ws.cell(row=row, column=5, value=esame.data_fine.strftime('%d/%m/%Y %H:%M'))
+        # Verifica che data_inizio e data_fine esistano
+        if hasattr(esame, 'data_inizio') and esame.data_inizio:
+            ws.cell(row=row, column=4, value=esame.data_inizio.strftime('%d/%m/%Y %H:%M'))
+        else:
+            ws.cell(row=row, column=4, value='Non definita')
+            
+        if hasattr(esame, 'data_fine') and esame.data_fine:
+            ws.cell(row=row, column=5, value=esame.data_fine.strftime('%d/%m/%Y %H:%M'))
+        else:
+            ws.cell(row=row, column=5, value='Non definita')
+            
         ws.cell(row=row, column=6, value=esame.modalita)
         ws.cell(row=row, column=7, value=esame.sede or '')
         ws.cell(row=row, column=8, value=esame.note or '')
         
         # Commissione
         commissione_str = '; '.join([
-            f"{c.titolo_accademico + ' ' if c.titolo_accademico else ''}{c.nome_membro} {c.cognome_membro} ({c.ruolo}){'*' if c.is_esterno_usr_lazio else ''}"
+            f"{getattr(c, 'titolo_accademico', '') + ' ' if getattr(c, 'titolo_accademico', '') else ''}{c.nome_membro} {c.cognome_membro} ({c.ruolo}){'*' if getattr(c, 'is_esterno_usr_lazio', False) else ''}"
             for c in esame.commissioni
         ])
         ws.cell(row=row, column=9, value=commissione_str)
         
-        # Date aggiuntive
-        date_agg_str = '; '.join([f"{d.data_inizio.strftime('%d/%m/%Y %H:%M')} - {d.data_fine.strftime('%d/%m/%Y %H:%M')} ({d.modalita}) - {dict(TIPI_ATTIVITA)[d.attivita] if hasattr(d, 'attivita') and d.attivita else 'Non specificato'}" 
-                                 for d in esame.date_aggiuntive])
+        # Date aggiuntive (ora chiamate calendario_esami)
+        calendario = getattr(esame, 'calendario_esami', [])
+        date_agg_str = '; '.join([
+            f"{d.data_inizio.strftime('%d/%m/%Y %H:%M')} - {d.data_fine.strftime('%d/%m/%Y %H:%M')} ({d.modalita}) - {dict(TIPI_ATTIVITA).get(getattr(d, 'attivita', 'altro'), 'Non specificato')}" 
+            for d in calendario
+        ])
         ws.cell(row=row, column=10, value=date_agg_str)
     
     # Salva il file temporaneo
@@ -726,8 +754,8 @@ def api_esami():
             'id': esame.id,
             'classe_concorso': esame.classe_concorso,
             'percorsi_pef': esame.get_percorsi_list(),
-            'data_inizio': esame.data_inizio.isoformat(),
-            'data_fine': esame.data_fine.isoformat(),
+            'data_inizio': esame.data_inizio.isoformat() if esame.data_inizio else None,
+            'data_fine': esame.data_fine.isoformat() if esame.data_fine else None,
             'modalita': esame.modalita,
             'sede': esame.sede,
             'note': esame.note,
@@ -737,28 +765,75 @@ def api_esami():
                     'nome_membro': c.nome_membro,
                     'cognome_membro': c.cognome_membro,
                     'ruolo': c.ruolo,
-                    'is_esterno_usr_lazio': c.is_esterno_usr_lazio,
-                    'titolo_accademico': c.titolo_accademico,
-                    'affiliazione': c.affiliazione,
+                    'profilo': c.profilo,
                     'email': c.email,
                     'telefono': c.telefono,
                     'note': c.note
                 } for c in esame.commissioni
             ],
-            'date_aggiuntive': [
+            'calendario_esami': [
                 {
                     'data_inizio': d.data_inizio.isoformat(),
                     'data_fine': d.data_fine.isoformat(),
                     'modalita': d.modalita,
                     'sede': d.sede,
                     'attivita': d.attivita if hasattr(d, 'attivita') else 'altro'
-                } for d in esame.date_aggiuntive
+                } for d in esame.calendario_esami
             ]
         }
         esami_json.append(esame_data)
     return jsonify(esami_json)
 
+# Aggiungi questa funzione per verificare e aggiornare il database
+def check_and_update_db():
+    """Verifica se il database ha la struttura corretta e la aggiorna se necessario"""
+    try:
+        # Esegui la migrazione direttamente qui
+        import sqlite3
+        db_path = app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')
+        
+        # Se è un percorso relativo, gestiscilo correttamente
+        if not os.path.isabs(db_path):
+            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), db_path)
+        
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Controlla se le colonne esistono già
+        cursor.execute("PRAGMA table_info(esame)")
+        existing_columns = [row[1] for row in cursor.fetchall()]
+        
+        columns_added = False
+        
+        if 'data_inizio' not in existing_columns:
+            print("Aggiunta colonna data_inizio alla tabella esame...")
+            cursor.execute("ALTER TABLE esame ADD COLUMN data_inizio TIMESTAMP")
+            columns_added = True
+        
+        if 'data_fine' not in existing_columns:
+            print("Aggiunta colonna data_fine alla tabella esame...")
+            cursor.execute("ALTER TABLE esame ADD COLUMN data_fine TIMESTAMP")
+            columns_added = True
+        
+        # Commit delle modifiche
+        conn.commit()
+        conn.close()
+        
+        if columns_added:
+            print("Migrazione database completata con successo!")
+        
+        return True
+    except Exception as migration_error:
+        print(f"Errore durante la migrazione: {migration_error}")
+        print("Continuando con funzionalità limitate...")
+        return False
+
 if __name__ == '__main__':
+    # Esegui la migrazione del database prima di tutto il resto
+    migration_success = check_and_update_db()
+    
+    # Poi crea le tabelle mancanti
     with app.app_context():
         db.create_all()
+    
     app.run(debug=True)
