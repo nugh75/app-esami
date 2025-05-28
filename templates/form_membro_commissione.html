@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Gestione Esami PEF{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">
+                    <i class="mdi mdi-account-edit me-2"></i>
+                    {{ title }}
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.nome.id }}" class="form-label">
+                                <i class="mdi mdi-account me-1"></i>
+                                Nome
+                            </label>
+                            {{ form.nome(class="form-control") }}
+                            {% if form.nome.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.nome.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.cognome.id }}" class="form-label">
+                                <i class="mdi mdi-account-box me-1"></i>
+                                Cognome
+                            </label>
+                            {{ form.cognome(class="form-control") }}
+                            {% if form.cognome.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.cognome.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="{{ form.profilo.id }}" class="form-label">
+                                <i class="mdi mdi-badge-account me-1"></i>
+                                Profilo
+                            </label>
+                            {{ form.profilo(class="form-select") }}
+                            {% if form.profilo.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.profilo.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="text-muted">Il profilo indica la categoria professionale del membro (es. professore, ricercatore, esperto esterno).</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.email.id }}" class="form-label">
+                                <i class="mdi mdi-email me-1"></i>
+                                Email
+                            </label>
+                            {{ form.email(class="form-control", type="email") }}
+                            {% if form.email.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.email.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.telefono.id }}" class="form-label">
+                                <i class="mdi mdi-phone me-1"></i>
+                                Telefono
+                            </label>
+                            {{ form.telefono(class="form-control") }}
+                            {% if form.telefono.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.telefono.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.note.id }}" class="form-label">
+                            <i class="mdi mdi-note-text me-1"></i>
+                            Note
+                        </label>
+                        {{ form.note(class="form-control", rows=4) }}
+                        {% if form.note.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.note.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Informazioni aggiuntive sul membro della commissione.</div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('membri_commissioni') }}" class="btn btn-secondary">
+                            <i class="mdi mdi-arrow-left me-1"></i>
+                            Indietro
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="mdi mdi-content-save me-1"></i>
+                            {{ form.submit.label.text }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

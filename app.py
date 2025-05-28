@@ -137,9 +137,47 @@ class CalendarioEsame(db.Model):
     sede = db.Column(db.String(200))
     attivita = db.Column(db.String(50), nullable=False, default='altro')  # Tipo di attività
 
+class MembroCommissione(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    cognome = db.Column(db.String(100), nullable=False)
+    # Il ruolo ora è specifico per ogni commissione
+    profilo = db.Column(db.String(100), nullable=False)  # Profili (prof_ricercatore_roma3, assegnista_roma3, ecc.)
+    email = db.Column(db.String(120))
+    telefono = db.Column(db.String(20))
+    note = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relazione con le commissioni
+    commissioni = db.relationship('Commissione', backref='membro', lazy=True)
+    
+    def __repr__(self):
+        return f'{self.nome} {self.cognome}'
+    
+    def calcola_ore_totali(self):
+        """Calcola le ore totali di partecipazione alle commissioni"""
+        ore_totali = 0
+        for commissione in self.commissioni:
+            for data in commissione.esame.calendario_esami:
+                # Calcola la durata in ore
+                durata = (data.data_fine - data.data_inizio).total_seconds() / 3600
+                ore_totali += durata
+        return round(ore_totali, 1)  # Arrotonda a 1 decimale
+    
+    def get_esami(self):
+        """Restituisce gli esami unici in cui partecipa"""
+        esami = []
+        esami_ids = []
+        for commissione in self.commissioni:
+            if commissione.esame_id not in esami_ids:
+                esami.append(commissione.esame)
+                esami_ids.append(commissione.esame_id)
+        return esami
+
 class Commissione(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     esame_id = db.Column(db.Integer, db.ForeignKey('esame.id'), nullable=False)
+    membro_id = db.Column(db.Integer, db.ForeignKey('membro_commissione.id'), nullable=True)  # Nuovo campo
     nome_membro = db.Column(db.String(100), nullable=False)
     cognome_membro = db.Column(db.String(100), nullable=False)
     tipologia = db.Column(db.String(10), nullable=False, default='T')  # 'T' = Titolare, 'S' = Supplente
@@ -177,6 +215,16 @@ class CommissioneForm(FlaskForm):
     email = StringField('Email', validators=[Optional()])
     telefono = StringField('Telefono', validators=[Optional()])
     note = TextAreaField('Note', validators=[Optional()])
+
+class MembroCommissioneForm(FlaskForm):
+    """Form per la gestione dei membri delle commissioni"""
+    nome = StringField('Nome', validators=[DataRequired()])
+    cognome = StringField('Cognome', validators=[DataRequired()])
+    profilo = SelectField('Profilo', choices=PROFILI_COMMISSIONE, validators=[DataRequired()])
+    email = StringField('Email', validators=[Optional()])
+    telefono = StringField('Telefono', validators=[Optional()])
+    note = TextAreaField('Note', validators=[Optional()])
+    submit = SubmitField('Salva Membro Commissione')
 
 # Routes
 @app.route('/')
@@ -880,6 +928,187 @@ def scarica_excel_commissioni():
     
     return send_file(temp_path, as_attachment=True, download_name='commissioni_esami_pef.xlsx', 
                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+# Routes per la gestione dei membri delle commissioni
+@app.route('/membri_commissioni')
+def membri_commissioni():
+    """Lista di tutti i membri delle commissioni registrati nel sistema"""
+    search = request.args.get('search', '')
+    profilo_filter = request.args.get('profilo', '')
+    
+    # Query base
+    query = MembroCommissione.query
+    
+    # Applicazione filtri
+    if search:
+        query = query.filter(
+            db.or_(
+                MembroCommissione.nome.ilike(f'%{search}%'),
+                MembroCommissione.cognome.ilike(f'%{search}%'),
+                MembroCommissione.email.ilike(f'%{search}%')
+            )
+        )
+    
+    if profilo_filter:
+        query = query.filter(MembroCommissione.profilo == profilo_filter)
+    
+    # Ordinamento per cognome e nome
+    membri = query.order_by(MembroCommissione.cognome, MembroCommissione.nome).all()
+    
+    return render_template(
+        'membri_commissioni.html', 
+        membri=membri,
+        profili_commissione=PROFILI_COMMISSIONE,
+        search=search,
+        profilo_filter=profilo_filter
+    )
+
+@app.route('/nuovo_membro_commissione', methods=['GET', 'POST'])
+def nuovo_membro_commissione():
+    """Aggiunta di un nuovo membro delle commissioni"""
+    form = MembroCommissioneForm()
+    if form.validate_on_submit():
+        membro = MembroCommissione(
+            nome=form.nome.data,
+            cognome=form.cognome.data,
+            profilo=form.profilo.data,
+            email=form.email.data,
+            telefono=form.telefono.data,
+            note=form.note.data
+        )
+        db.session.add(membro)
+        db.session.commit()
+        flash('Membro della commissione aggiunto con successo!', 'success')
+        return redirect(url_for('membri_commissioni'))
+    
+    return render_template('form_membro_commissione.html', form=form, title='Nuovo Membro Commissione')
+
+@app.route('/membro_commissione/<int:id>')
+def dettaglio_membro_commissione(id):
+    """Pagina dettaglio di un membro delle commissioni"""
+    membro = MembroCommissione.query.get_or_404(id)
+    
+    # Calcola statistiche per il membro
+    esami = membro.get_esami()
+    ore_totali = membro.calcola_ore_totali()
+    
+    # Raggruppa esami per classe di concorso
+    esami_per_classe = {}
+    for esame in esami:
+        if esame.classe_concorso not in esami_per_classe:
+            esami_per_classe[esame.classe_concorso] = []
+        esami_per_classe[esame.classe_concorso].append(esame)
+    
+    return render_template(
+        'dettaglio_membro_commissione.html',
+        membro=membro,
+        esami=esami,
+        esami_per_classe=esami_per_classe,
+        ore_totali=ore_totali,
+        n_commissioni=len(membro.commissioni),
+        n_esami=len(esami)
+    )
+
+@app.route('/membro_commissione/<int:id>/modifica', methods=['GET', 'POST'])
+def modifica_membro_commissione(id):
+    """Modifica di un membro delle commissioni"""
+    membro = MembroCommissione.query.get_or_404(id)
+    form = MembroCommissioneForm(obj=membro)
+    
+    if form.validate_on_submit():
+        # Salva i dati precedenti per controllare cosa è cambiato
+        vecchio_nome = membro.nome
+        vecchio_cognome = membro.cognome
+        vecchio_profilo = membro.profilo
+        vecchia_email = membro.email
+        vecchio_telefono = membro.telefono
+        vecchie_note = membro.note
+        
+        # Aggiorna il membro
+        form.populate_obj(membro)
+        
+        # Aggiorna anche tutte le commissioni associate se i dati sono cambiati
+        commissioni = Commissione.query.filter_by(membro_id=membro.id).all()
+        for commissione in commissioni:
+            if vecchio_nome != membro.nome:
+                commissione.nome_membro = membro.nome
+            if vecchio_cognome != membro.cognome:
+                commissione.cognome_membro = membro.cognome
+            if vecchio_profilo != membro.profilo:
+                commissione.profilo = membro.profilo
+            if vecchia_email != membro.email:
+                commissione.email = membro.email
+            if vecchio_telefono != membro.telefono:
+                commissione.telefono = membro.telefono
+            if vecchie_note != membro.note:
+                commissione.note = membro.note
+        
+        db.session.commit()
+        flash('Membro della commissione aggiornato con successo!', 'success')
+        return redirect(url_for('dettaglio_membro_commissione', id=membro.id))
+    
+    return render_template('form_membro_commissione.html', form=form, title='Modifica Membro Commissione')
+
+@app.route('/membro_commissione/<int:id>/elimina', methods=['POST'])
+def elimina_membro_commissione(id):
+    """Eliminazione di un membro delle commissioni"""
+    membro = MembroCommissione.query.get_or_404(id)
+    nome_completo = f"{membro.nome} {membro.cognome}"
+    
+    # Verifica se il membro è associato a commissioni
+    if membro.commissioni:
+        flash(f'Impossibile eliminare: {nome_completo} è associato a {len(membro.commissioni)} commissioni', 'danger')
+        return redirect(url_for('dettaglio_membro_commissione', id=membro.id))
+    
+    db.session.delete(membro)
+    db.session.commit()
+    flash(f'Membro della commissione {nome_completo} eliminato con successo!', 'success')
+    
+    return redirect(url_for('membri_commissioni'))
+
+@app.route('/membro_commissione/<int:id>/aggiungi_commissioni', methods=['GET', 'POST'])
+def aggiungi_membro_a_commissioni(id):
+    """Aggiunta di un membro a multiple commissioni esistenti"""
+    membro = MembroCommissione.query.get_or_404(id)
+    
+    # Ottenere gli ID degli esami in cui il membro è già presente
+    esami_esistenti = [c.esame_id for c in membro.commissioni]
+    
+    # Esami disponibili (esclusi quelli in cui è già presente)
+    esami_disponibili = Esame.query.filter(~Esame.id.in_(esami_esistenti)).all()
+    
+    if request.method == 'POST':
+        esami_selezionati = request.form.getlist('esami')
+        tipologia = request.form.get('tipologia', 'T')
+        ruolo = request.form.get('ruolo')  # Nuovo ruolo specifico per questa commissione
+        
+        for esame_id in esami_selezionati:
+            # Crea una nuova associazione commissione
+            commissione = Commissione(
+                esame_id=esame_id,
+                membro_id=membro.id,
+                nome_membro=membro.nome,
+                cognome_membro=membro.cognome,
+                tipologia=tipologia,
+                ruolo=ruolo,  # Usa il ruolo specifico per questa commissione
+                profilo=membro.profilo,
+                email=membro.email,
+                telefono=membro.telefono,
+                note=membro.note
+            )
+            db.session.add(commissione)
+        
+        db.session.commit()
+        flash(f'Membro aggiunto a {len(esami_selezionati)} commissioni!', 'success')
+        return redirect(url_for('dettaglio_membro_commissione', id=membro.id))
+    
+    return render_template(
+        'aggiungi_membro_commissioni.html',
+        membro=membro,
+        esami=esami_disponibili,
+        tipologie=TIPOLOGIE_COMMISSIONE,
+        ruoli=RUOLI_COMMISSIONE  # Aggiungi i ruoli disponibili
+    )
 
 # API Routes
 @app.route('/api/classi-concorso')

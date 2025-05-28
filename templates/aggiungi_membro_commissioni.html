@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Aggiungi a Commissioni - Gestione Esami PEF{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">
+                    <i class="mdi mdi-account-multiple-plus me-2"></i>
+                    Aggiungi {{ membro.nome }} {{ membro.cognome }} a Commissioni
+                </h3>
+            </div>
+            <div class="card-body">
+                {% if esami %}
+                <form method="POST">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="mdi mdi-account-switch me-1"></i>
+                                Tipologia
+                            </label>
+                            <div class="btn-group w-100" role="group">
+                                {% for value, label in tipologie %}
+                                <input type="radio" class="btn-check" name="tipologia" id="tipologia{{ value }}" 
+                                       value="{{ value }}" {% if value == 'T' %}checked{% endif %}>
+                                <label class="btn btn-outline-primary" for="tipologia{{ value }}">
+                                    {{ label }}
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="mdi mdi-account-tie me-1"></i>
+                                Ruolo nella Commissione
+                            </label>
+                            <select name="ruolo" class="form-select">
+                                {% for value, label in ruoli %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="mdi mdi-calendar-check me-1"></i>
+                            Seleziona gli esami a cui aggiungere il membro
+                        </label>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th width="5%">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="selectAll">
+                                            </div>
+                                        </th>
+                                        <th>Classe Concorso</th>
+                                        <th>Data</th>
+                                        <th>Modalità</th>
+                                        <th>Sede</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for esame in esami %}
+                                    <tr>
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input esame-checkbox" type="checkbox" 
+                                                       name="esami" value="{{ esame.id }}" id="esame{{ esame.id }}">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <label class="form-check-label w-100" for="esame{{ esame.id }}">
+                                                {{ esame.classe_concorso }}
+                                            </label>
+                                        </td>
+                                        <td>{{ esame.data_inizio.strftime('%d/%m/%Y') }}</td>
+                                        <td>
+                                            <span class="badge {{ 'bg-success' if esame.modalita == 'online' else ('bg-warning' if esame.modalita == 'mista' else 'bg-primary') }}">
+                                                <i class="mdi mdi-{{ 'laptop' if esame.modalita == 'online' else ('swap-horizontal' if esame.modalita == 'mista' else 'map-marker') }} me-1"></i>
+                                                {{ esame.modalita.title() }}
+                                            </span>
+                                        </td>
+                                        <td>{{ esame.sede or '-' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('dettaglio_membro_commissione', id=membro.id) }}" class="btn btn-secondary">
+                            <i class="mdi mdi-arrow-left me-1"></i>
+                            Indietro
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                            <i class="mdi mdi-content-save me-1"></i>
+                            Aggiungi a Commissioni
+                        </button>
+                    </div>
+                </form>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="mdi mdi-alert-circle text-muted" style="font-size: 3rem;"></i>
+                    <p class="mt-3">Non ci sono esami disponibili a cui aggiungere questo membro.</p>
+                    <p class="text-muted">Il membro è già associato a tutte le commissioni esistenti o non ci sono esami nel sistema.</p>
+                    <div class="mt-4">
+                        <a href="{{ url_for('dettaglio_membro_commissione', id=membro.id) }}" class="btn btn-secondary me-2">
+                            <i class="mdi mdi-arrow-left me-1"></i>
+                            Torna al dettaglio
+                        </a>
+                        <a href="{{ url_for('nuovo_esame') }}" class="btn btn-primary">
+                            <i class="mdi mdi-plus me-1"></i>
+                            Crea nuovo esame
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestione della selezione di tutti gli esami
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const esameCheckboxes = document.querySelectorAll('.esame-checkbox');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        if(selectAllCheckbox) {
+            // Gestione del checkbox "Seleziona tutti"
+            selectAllCheckbox.addEventListener('change', function() {
+                const isChecked = this.checked;
+                
+                esameCheckboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+                
+                // Abilita/disabilita il pulsante di invio
+                submitBtn.disabled = !isChecked && !Array.from(esameCheckboxes).some(cb => cb.checked);
+            });
+            
+            // Gestione dei singoli checkbox
+            esameCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    // Aggiorna lo stato del checkbox "Seleziona tutti"
+                    selectAllCheckbox.checked = Array.from(esameCheckboxes).every(cb => cb.checked);
+                    
+                    // Abilita/disabilita il pulsante di invio
+                    submitBtn.disabled = !Array.from(esameCheckboxes).some(cb => cb.checked);
+                });
+            });
+            
+            // Rendi le righe della tabella cliccabili per selezionare il checkbox
+            const tableRows = document.querySelectorAll('tbody tr');
+            tableRows.forEach(row => {
+                row.addEventListener('click', function(e) {
+                    // Non attivare se il click è già sul checkbox
+                    if (e.target.type !== 'checkbox') {
+                        const checkbox = this.querySelector('.esame-checkbox');
+                        checkbox.checked = !checkbox.checked;
+                        
+                        // Trigger the change event
+                        const event = new Event('change');
+                        checkbox.dispatchEvent(event);
+                    }
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Dettaglio Membro Commissione - Gestione Esami PEF{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Informazioni principali membro -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">
+                    <i class="mdi mdi-account-details me-2"></i>
+                    {{ membro.nome }} {{ membro.cognome }}
+                </h3>
+                <div>
+                    <a href="{{ url_for('modifica_membro_commissione', id=membro.id) }}" class="btn btn-warning">
+                        <i class="mdi mdi-pencil me-1"></i>
+                        Modifica
+                    </a>
+                    <a href="{{ url_for('aggiungi_membro_a_commissioni', id=membro.id) }}" class="btn btn-success">
+                        <i class="mdi mdi-plus-circle me-1"></i>
+                        Aggiungi a Commissioni
+                    </a>
+                    <form method="POST" action="{{ url_for('elimina_membro_commissione', id=membro.id) }}" 
+                          style="display: inline;" 
+                          onsubmit="return confirm('Sei sicuro di voler eliminare questo membro della commissione?')">
+                        <button type="submit" class="btn btn-danger" {% if membro.commissioni %}disabled title="Impossibile eliminare: il membro fa parte di commissioni"{% endif %}>
+                            <i class="mdi mdi-delete me-1"></i>
+                            Elimina
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong><i class="mdi mdi-account me-2"></i>Nome:</strong></td>
+                                <td>{{ membro.nome }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong><i class="mdi mdi-account-box me-2"></i>Cognome:</strong></td>
+                                <td>{{ membro.cognome }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong><i class="mdi mdi-badge-account me-2"></i>Profilo:</strong></td>
+                                <td>{{ dict(PROFILI_COMMISSIONE).get(membro.profilo) }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong><i class="mdi mdi-email me-2"></i>Email:</strong></td>
+                                <td>{{ membro.email or 'Non specificata' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong><i class="mdi mdi-phone me-2"></i>Telefono:</strong></td>
+                                <td>{{ membro.telefono or 'Non specificato' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong><i class="mdi mdi-calendar-plus me-2"></i>Data registrazione:</strong></td>
+                                <td>{{ membro.created_at.strftime('%d/%m/%Y alle %H:%M') }}</td>
+                            </tr>
+                            {% if membro.note %}
+                            <tr>
+                                <td><strong><i class="mdi mdi-note-text me-2"></i>Note:</strong></td>
+                                <td>{{ membro.note }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistiche -->
+    <div class="col-md-12 mt-4">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h1 class="display-4 mb-0">{{ n_commissioni }}</h1>
+                        <p class="text-muted mb-0">Commissioni</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h1 class="display-4 mb-0">{{ n_esami }}</h1>
+                        <p class="text-muted mb-0">Esami</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h1 class="display-4 mb-0">{{ ore_totali }}</h1>
+                        <p class="text-muted mb-0">Ore totali</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h1 class="display-4 mb-0">{{ esami_per_classe|length }}</h1>
+                        <p class="text-muted mb-0">Classi concorso</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Elenco Commissioni -->
+    <div class="col-md-12 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="mdi mdi-account-group me-2"></i>
+                    Commissioni Associate
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if membro.commissioni %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Classe Concorso</th>
+                                <th>Data</th>
+                                <th>Tipo</th>
+                                <th>Ruolo</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for commissione in membro.commissioni %}
+                            <tr>
+                                <td>{{ commissione.esame.classe_concorso }}</td>
+                                <td>{{ commissione.esame.data_inizio.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <span class="badge {{ 'bg-primary' if commissione.tipologia == 'T' else 'bg-secondary' }}">
+                                        {{ 'Titolare' if commissione.tipologia == 'T' else 'Supplente' }}
+                                    </span>
+                                </td>
+                                <td>{{ dict(RUOLI_COMMISSIONE).get(commissione.ruolo) }}</td>
+                                <td>
+                                    <a href="{{ url_for('dettaglio_esame', id=commissione.esame_id) }}" class="btn btn-sm btn-primary">
+                                        <i class="mdi mdi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="mdi mdi-alert-circle text-muted" style="font-size: 3rem;"></i>
+                    <p class="mt-3">Questo membro non è associato a nessuna commissione.</p>
+                    <a href="{{ url_for('aggiungi_membro_a_commissioni', id=membro.id) }}" class="btn btn-primary mt-2">
+                        <i class="mdi mdi-plus-circle me-1"></i>
+                        Aggiungi a Commissioni
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Elenco Esami raggruppati per classe di concorso -->
+    {% if esami_per_classe %}
+    <div class="col-md-12 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="mdi mdi-school me-2"></i>
+                    Esami per Classe di Concorso
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="accordionClasse">
+                    {% for classe, esami_classe in esami_per_classe.items() %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ loop.index }}">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapse{{ loop.index }}" aria-expanded="false"
+                                    aria-controls="collapse{{ loop.index }}">
+                                <strong>{{ classe }}</strong> - {{ esami_classe|length }} esami
+                            </button>
+                        </h2>
+                        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse"
+                             aria-labelledby="heading{{ loop.index }}" data-bs-parent="#accordionClasse">
+                            <div class="accordion-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Data</th>
+                                                <th>Modalità</th>
+                                                <th>Sede</th>
+                                                <th>Percorsi PEF</th>
+                                                <th>Azioni</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for esame in esami_classe %}
+                                            <tr>
+                                                <td>{{ esame.data_inizio.strftime('%d/%m/%Y') }}</td>
+                                                <td>
+                                                    <span class="badge {{ 'bg-success' if esame.modalita == 'online' else ('bg-warning' if esame.modalita == 'mista' else 'bg-primary') }}">
+                                                        <i class="mdi mdi-{{ 'laptop' if esame.modalita == 'online' else ('swap-horizontal' if esame.modalita == 'mista' else 'map-marker') }} me-1"></i>
+                                                        {{ esame.modalita.title() }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ esame.sede or '-' }}</td>
+                                                <td>
+                                                    {% for percorso in esame.get_percorsi_list() %}
+                                                    <span class="badge bg-info me-1 mb-1">{{ percorso }}</span>
+                                                    {% endfor %}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('dettaglio_esame', id=esame.id) }}" class="btn btn-sm btn-primary">
+                                                        <i class="mdi mdi-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
