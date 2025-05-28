@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Gestione Esami PEF{% endblock %}
+
+{% block content %}
+<!-- Statistiche Dashboard -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ stats.totale_esami }}</h4>
+                        <small>Totale Esami</small>
+                    </div>
+                    <i class="mdi mdi-calendar-check display-4 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ stats.online }}</h4>
+                        <small>Online</small>
+                    </div>
+                    <i class="mdi mdi-laptop display-4 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ stats.presenza }}</h4>
+                        <small>In Presenza</small>
+                    </div>
+                    <i class="mdi mdi-map-marker display-4 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ stats.con_commissione }}</h4>
+                        <small>Con Commissione</small>
+                    </div>
+                    <i class="mdi mdi-account-group display-4 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtri di Ricerca -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Ricerca</label>
+                <input type="text" class="form-control" name="search" value="{{ search }}" 
+                       placeholder="Cerca per classe, sede, note...">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Classe Concorso</label>
+                <select class="form-select" name="classe">
+                    <option value="">Tutte</option>
+                    {% for codice, descrizione in classi_concorso %}
+                        <option value="{{ codice }}" {{ 'selected' if classe_filter == codice }}>{{ codice }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Percorso PEF</label>
+                <select class="form-select" name="percorso">
+                    <option value="">Tutti</option>
+                    {% for valore, descrizione in percorsi_pef %}
+                        <option value="{{ valore }}" {{ 'selected' if percorso_filter == valore }}>
+                            {{ descrizione.split(' - ')[0] }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Modalità</label>
+                <select class="form-select" name="modalita">
+                    <option value="">Tutte</option>
+                    <option value="online" {{ 'selected' if modalita_filter == 'online' }}>Online</option>
+                    <option value="presenza" {{ 'selected' if modalita_filter == 'presenza' }}>In Presenza</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="mdi mdi-magnify"></i> Filtra
+                    </button>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                        <i class="mdi mdi-refresh"></i> Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">
+                    <i class="mdi mdi-calendar-check me-2"></i>
+                    Esami PEF
+                    {% if esami|length != stats.totale_esami %}
+                        <span class="badge bg-info">{{ esami|length }} di {{ stats.totale_esami }}</span>
+                    {% endif %}
+                </h3>
+                <div>
+                    <a href="{{ url_for('scarica_calendario') }}" class="btn btn-light me-2">
+                        <i class="mdi mdi-calendar-export me-1"></i>
+                        Scarica Calendario
+                    </a>
+                    <a href="{{ url_for('scarica_excel') }}" class="btn btn-light">
+                        <i class="mdi mdi-file-excel me-1"></i>
+                        Scarica Excel
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if esami %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Classe di Concorso</th>
+                                    <th>Percorso PEF</th>
+                                    <th>Data/Ora</th>
+                                    <th>Modalità</th>
+                                    <th>Sede</th>
+                                    <th>Commissione</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for esame in esami %}
+                                <tr>
+                                    <td>
+                                        <strong class="text-primary">{{ esame.classe_concorso }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            {% set classi_map = {
+                                                'A001': 'Arte e immagine nella scuola secondaria di I grado',
+                                                'A007': 'Discipline audiovisive',
+                                                'A008': 'Discipline geometriche, architettura, design d\'arredamento e scenotecnica',
+                                                'A011': 'Discipline letterarie e latino',
+                                                'A012': 'Discipline letterarie negli istituti di istruzione secondaria di II grado',
+                                                'A013': 'Discipline letterarie, latino e greco',
+                                                'A017': 'Disegno e storia dell\'arte',
+                                                'A018': 'Filosofia e scienze umane',
+                                                'A019': 'Filosofia e storia',
+                                                'A020': 'Fisica',
+                                                'A022': 'Italiano, storia, geografia nella scuola secondaria di I grado',
+                                                'A023': 'Lingua italiana per discenti di lingua straniera (alloglotti)',
+                                                'A026': 'Matematica',
+                                                'A027': 'Matematica e fisica',
+                                                'A028': 'Matematica e scienze',
+                                                'A029': 'Musica negli istituti di istruzione secondaria di II grado',
+                                                'A030': 'Musica nella scuola secondaria di I grado',
+                                                'A037': 'Scienze e tecnologie delle costruzioni, tecnologie e tecniche di rappresentazione grafica',
+                                                'A040': 'Tecnologie elettriche elettroniche',
+                                                'A042': 'Scienze e tecnologie meccaniche',
+                                                'A045': 'Scienze economico-aziendali',
+                                                'A046': 'Scienze giuridico-economiche',
+                                                'A050': 'Scienze naturali, chimiche e biologiche',
+                                                'A053': 'Storia della musica',
+                                                'A054': 'Storia dell\'arte',
+                                                'A060': 'Tecnologia nella scuola secondaria di I grado',
+                                                'A061': 'Tecnologie e tecniche delle comunicazioni multimediali',
+                                                'A063': 'Tecnologie musicali',
+                                                'A064': 'Teoria, analisi e composizione',
+                                                'AA24': 'Lingua e cultura straniera (francese)',
+                                                'AB24': 'Lingua e cultura straniera (inglese)',
+                                                'AC24': 'Lingua e cultura straniera (spagnolo)',
+                                                'AL24': 'Lingua e cultura straniera (arabo)',
+                                                'B015': 'Laboratori di scienze e tecnologie elettriche ed elettroniche'
+                                            } %}
+                                            {{ classi_map[esame.classe_concorso] or esame.classe_concorso }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% for percorso in esame.get_percorsi_list() %}
+                                            <span class="badge bg-info me-1 mb-1">
+                                                {% if percorso == 'pef_60_all1' %}
+                                                    60 CFU All. 1
+                                                {% elif percorso == 'pef_30_all2' %}
+                                                    30 CFU All. 2
+                                                {% elif percorso == 'pef_36_all5' %}
+                                                    36 CFU All. 5
+                                                {% elif percorso == 'pef_30_art13' %}
+                                                    30 CFU Art. 13
+                                                {% endif %}
+                                            </span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ esame.data_inizio.strftime('%d/%m/%Y') }}</strong><br>
+                                        <small class="text-muted">
+                                            {{ esame.data_inizio.strftime('%H:%M') }} - {{ esame.data_fine.strftime('%H:%M') }}
+                                        </small>
+                                        {% if esame.date_aggiuntive %}
+                                            <br>
+                                            <small class="text-info">
+                                                <i class="mdi mdi-plus-circle"></i>
+                                                {{ esame.date_aggiuntive|length }} date aggiuntive
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ 'bg-success' if esame.modalita == 'online' else 'bg-primary' }}">
+                                            <i class="mdi mdi-{{ 'laptop' if esame.modalita == 'online' else 'map-marker' }} me-1"></i>
+                                            {{ esame.modalita.title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if esame.sede %}
+                                            <small>{{ esame.sede }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if esame.commissioni %}
+                                            <small>
+                                                {{ esame.commissioni|length }} membri
+                                                {% set esterni = esame.commissioni|selectattr('is_esterno_usr_lazio')|list %}
+                                                {% if esterni %}
+                                                    <br><span class="text-warning">
+                                                        <i class="mdi mdi-star"></i>
+                                                        {{ esterni|length }} esterni USR Lazio
+                                                    </span>
+                                                {% endif %}
+                                            </small>
+                                        {% else %}
+                                            <span class="text-muted">Nessuna commissione</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('dettaglio_esame', id=esame.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="mdi mdi-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('modifica_esame', id=esame.id) }}" 
+                                               class="btn btn-sm btn-outline-warning">
+                                                <i class="mdi mdi-pencil"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('elimina_esame', id=esame.id) }}" 
+                                                  style="display: inline;" 
+                                                  onsubmit="return confirm('Sei sicuro di voler eliminare questo esame?')">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="mdi mdi-delete"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="mdi mdi-calendar-blank display-1 text-muted"></i>
+                        <h4 class="text-muted mt-3">Nessun esame programmato</h4>
+                        <p class="text-muted">Inizia creando il tuo primo esame PEF</p>
+                        <a href="{{ url_for('nuovo_esame') }}" class="btn btn-primary mt-3">
+                            <i class="mdi mdi-plus me-2"></i>
+                            Crea Primo Esame
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Button -->
+<a href="{{ url_for('nuovo_esame') }}" class="floating-btn" title="Nuovo Esame">
+    <i class="mdi mdi-plus"></i>
+</a>
+{% endblock %}

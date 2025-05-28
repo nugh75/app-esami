@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block title %}Nuovo Esame - Gestione Esami PEF{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">
+                    <i class="mdi mdi-plus-circle me-2"></i>
+                    Nuovo Esame PEF
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.classe_concorso.id }}" class="form-label">
+                                <i class="mdi mdi-school me-1"></i>
+                                Classe di Concorso
+                            </label>
+                            {{ form.classe_concorso(class="form-select") }}
+                            {% if form.classe_concorso.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.classe_concorso.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-certificate me-1"></i>
+                                Percorsi PEF <small class="text-muted">(Seleziona uno o più percorsi)</small>
+                            </label>
+                            <div class="card" style="max-height: 200px; overflow-y: auto;">
+                                <div class="card-body">
+                                    {% for value, label in form.percorsi_pef.choices %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="percorsi_pef" value="{{ value }}" 
+                                                   id="percorso_{{ value }}"
+                                                   {% if form.percorsi_pef.data and value in form.percorsi_pef.data %}checked{% endif %}>
+                                            <label class="form-check-label" for="percorso_{{ value }}">
+                                                <small>{{ label }}</small>
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% if form.percorsi_pef.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.percorsi_pef.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.data_inizio.id }}" class="form-label">
+                                <i class="mdi mdi-calendar-start me-1"></i>
+                                Data Esame
+                            </label>
+                            <input type="date" class="form-control" id="data_esame" name="data_esame" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-clock-start me-1"></i>
+                                Orario Inizio
+                            </label>
+                            <input type="time" class="form-control" id="orario_inizio" name="orario_inizio" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-clock-end me-1"></i>
+                                Orario Fine
+                            </label>
+                            <input type="time" class="form-control" id="orario_fine" name="orario_fine" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.modalita.id }}" class="form-label">
+                                <i class="mdi mdi-laptop me-1"></i>
+                                Modalità
+                            </label>
+                            {{ form.modalita(class="form-select") }}
+                            {% if form.modalita.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.modalita.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.sede.id }}" class="form-label">
+                                <i class="mdi mdi-map-marker me-1"></i>
+                                Sede
+                            </label>
+                            {{ form.sede(class="form-control", placeholder="Inserisci la sede dell'esame (facoltativo)") }}
+                            {% if form.sede.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.sede.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.note.id }}" class="form-label">
+                            <i class="mdi mdi-note-text me-1"></i>
+                            Note
+                        </label>
+                        {{ form.note(class="form-control", rows="3", placeholder="Note aggiuntive (facoltativo)") }}
+                        {% if form.note.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.note.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Sezione Date Aggiuntive -->
+                    <div class="card mb-3" style="background-color: #f8f9fa;">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="mdi mdi-calendar-plus me-1"></i>
+                                Date Aggiuntive <small class="text-muted">(opzionale)</small>
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="dateAggiuntive">
+                                <!-- Le date aggiuntive verranno aggiunte qui dinamicamente -->
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="aggiungiDataAggiuntiva()">
+                                <i class="mdi mdi-plus me-1"></i>
+                                Aggiungi Data Aggiuntiva
+                            </button>
+                            <small class="form-text text-muted d-block mt-2">
+                                Le date aggiuntive ti permettono di programmare sessioni multiple per lo stesso esame
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Sezione Commissione d'Esame -->
+                    <div class="card mb-3" style="background-color: #e8f5e8;">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="mdi mdi-account-group me-1"></i>
+                                Commissione d'Esame <small class="text-muted">(opzionale)</small>
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="membriCommissione">
+                                <!-- I membri della commissione verranno aggiunti qui dinamicamente -->
+                            </div>
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="aggiungiMembroCommissione()">
+                                <i class="mdi mdi-plus me-1"></i>
+                                Aggiungi Membro Commissione
+                            </button>
+                            <small class="form-text text-muted d-block mt-2">
+                                Aggiungi i membri della commissione d'esame. Puoi includere presidente, docenti e tutor coordinatori
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="mdi mdi-arrow-left me-1"></i>
+                            Indietro
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let contatoreDateAggiuntive = 0;
+    let contatoreMembriCommissione = 0;
+
+    // Imposta la data minima ad oggi
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const dataEsameEl = document.getElementById('data_esame');
+    const orarioInizioEl = document.getElementById('orario_inizio');
+    const orarioFineEl = document.getElementById('orario_fine');
+    
+    if (dataEsameEl) dataEsameEl.min = today;
+    
+    // Aggiungi event listener per la validazione degli orari principali
+    if (orarioInizioEl && orarioFineEl) {
+        orarioInizioEl.addEventListener('change', function() {
+            if (orarioFineEl.value && orarioFineEl.value <= this.value) {
+                // Aggiungi un'ora all'orario di inizio per l'orario di fine
+                const [ore, minuti] = this.value.split(':');
+                const nuovaOra = String(parseInt(ore) + 1).padStart(2, '0');
+                orarioFineEl.value = `${nuovaOra}:${minuti}`;
+            }
+            aggiornaDataTimeHidden();
+        });
+        
+        orarioFineEl.addEventListener('change', aggiornaDataTimeHidden);
+    }
+    
+    if (dataEsameEl) {
+        dataEsameEl.addEventListener('change', aggiornaDataTimeHidden);
+    }
+    
+    // Funzione per aggiornare i campi nascosti datetime
+    function aggiornaDataTimeHidden() {
+        const data = dataEsameEl.value;
+        const orarioInizio = orarioInizioEl.value;
+        const orarioFine = orarioFineEl.value;
+        
+        if (data && orarioInizio && orarioFine) {
+            // Crea o aggiorna i campi nascosti per mantenere compatibilità con il form
+            let dataInizioHidden = document.getElementById('data_inizio_hidden');
+            let dataFineHidden = document.getElementById('data_fine_hidden');
+            
+            if (!dataInizioHidden) {
+                dataInizioHidden = document.createElement('input');
+                dataInizioHidden.type = 'hidden';
+                dataInizioHidden.id = 'data_inizio_hidden';
+                dataInizioHidden.name = 'data_inizio';
+                document.querySelector('form').appendChild(dataInizioHidden);
+            }
+            
+            if (!dataFineHidden) {
+                dataFineHidden = document.createElement('input');
+                dataFineHidden.type = 'hidden';
+                dataFineHidden.id = 'data_fine_hidden';
+                dataFineHidden.name = 'data_fine';
+                document.querySelector('form').appendChild(dataFineHidden);
+            }
+            
+            dataInizioHidden.value = `${data}T${orarioInizio}`;
+            dataFineHidden.value = `${data}T${orarioFine}`;
+        }
+    }
+
+    function aggiungiDataAggiuntiva() {
+        contatoreDateAggiuntive++;
+        const container = document.getElementById('dateAggiuntive');
+        
+        const dateDiv = document.createElement('div');
+        dateDiv.className = 'border rounded p-3 mb-3';
+        dateDiv.id = `dataAggiuntiva_${contatoreDateAggiuntive}`;
+        
+        dateDiv.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Data Aggiuntiva #${contatoreDateAggiuntive}</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="rimuoviDataAggiuntiva(${contatoreDateAggiuntive})">
+                    <i class="mdi mdi-delete"></i>
+                </button>
+            </div>
+            <div class="row">
+                <div class="col-md-2">
+                    <label class="form-label">Data</label>
+                    <input type="date" class="form-control" name="data_aggiuntiva_data_${contatoreDateAggiuntive}" min="${today}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Orario Inizio</label>
+                    <input type="time" class="form-control" name="data_aggiuntiva_ora_inizio_${contatoreDateAggiuntive}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Orario Fine</label>
+                    <input type="time" class="form-control" name="data_aggiuntiva_ora_fine_${contatoreDateAggiuntive}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Modalità</label>
+                    <select class="form-select" name="data_aggiuntiva_modalita_${contatoreDateAggiuntive}">
+                        <option value="online">Online</option>
+                        <option value="presenza">In Presenza</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Sede</label>
+                    <input type="text" class="form-control" name="data_aggiuntiva_sede_${contatoreDateAggiuntive}" placeholder="Sede (opzionale)">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tipo Attività</label>
+                    <select class="form-select" name="data_aggiuntiva_attivita_${contatoreDateAggiuntive}">
+                        {% for value, label in TIPI_ATTIVITA %}
+                        <option value="{{ value }}" {% if value == 'altro' %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(dateDiv);
+        
+        // Aggiungi event listener per la validazione delle date
+        const dataInput = dateDiv.querySelector(`input[name="data_aggiuntiva_data_${contatoreDateAggiuntive}"]`);
+        const oraInizioInput = dateDiv.querySelector(`input[name="data_aggiuntiva_ora_inizio_${contatoreDateAggiuntive}"]`);
+        const oraFineInput = dateDiv.querySelector(`input[name="data_aggiuntiva_ora_fine_${contatoreDateAggiuntive}"]`);
+        
+        if (oraInizioInput && oraFineInput) {
+            oraInizioInput.addEventListener('change', function() {
+                if (oraFineInput.value && oraFineInput.value <= this.value) {
+                    // Aggiungi un'ora all'orario di inizio per l'orario di fine
+                    const [ore, minuti] = this.value.split(':');
+                    const nuovaOra = String(parseInt(ore) + 1).padStart(2, '0');
+                    oraFineInput.value = `${nuovaOra}:${minuti}`;
+                }
+            });
+        }
+    }
+
+    function rimuoviDataAggiuntiva(id) {
+        const elemento = document.getElementById(`dataAggiuntiva_${id}`);
+        if (elemento) {
+            elemento.remove();
+        }
+    }
+
+    function aggiungiMembroCommissione() {
+        contatoreMembriCommissione++;
+        const container = document.getElementById('membriCommissione');
+        
+        const membroDiv = document.createElement('div');
+        membroDiv.className = 'border rounded p-3 mb-3';
+        membroDiv.id = `membroCommissione_${contatoreMembriCommissione}`;
+        
+        membroDiv.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">
+                    <i class="mdi mdi-account me-1"></i>
+                    Membro Commissione #${contatoreMembriCommissione}
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="rimuoviMembroCommissione(${contatoreMembriCommissione})">
+                    <i class="mdi mdi-delete"></i>
+                </button>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        <i class="mdi mdi-account me-1"></i>Nome
+                    </label>
+                    <input type="text" class="form-control" name="commissione_nome_${contatoreMembriCommissione}" 
+                           placeholder="Nome" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        <i class="mdi mdi-account me-1"></i>Cognome
+                    </label>
+                    <input type="text" class="form-control" name="commissione_cognome_${contatoreMembriCommissione}" 
+                           placeholder="Cognome" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        <i class="mdi mdi-account-tie me-1"></i>Ruolo
+                    </label>
+                    <select class="form-select" name="commissione_ruolo_${contatoreMembriCommissione}" required>
+                        <option value="">Seleziona ruolo...</option>
+                        <option value="presidente">Presidente</option>
+                        <option value="docente">Docente</option>
+                        <option value="tutor_coordinatore">Tutor Coordinatore</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        <i class="mdi mdi-school me-1"></i>Titolo Accademico
+                    </label>
+                    <select class="form-select" name="commissione_titolo_${contatoreMembriCommissione}">
+                        <option value="">Seleziona...</option>
+                        <option value="prof">Prof.</option>
+                        <option value="prof_ssa">Prof.ssa</option>
+                        <option value="dott">Dott.</option>
+                        <option value="dott_ssa">Dott.ssa</option>
+                        <option value="ing">Ing.</option>
+                        <option value="arch">Arch.</option>
+                        <option value="avv">Avv.</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        <i class="mdi mdi-domain me-1"></i>Università/Istituzione
+                    </label>
+                    <input type="text" class="form-control" name="commissione_affiliazione_${contatoreMembriCommissione}" 
+                           placeholder="Università o istituzione di appartenenza">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        <i class="mdi mdi-email me-1"></i>Email
+                    </label>
+                    <input type="email" class="form-control" name="commissione_email_${contatoreMembriCommissione}" 
+                           placeholder="email@esempio.it">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        <i class="mdi mdi-phone me-1"></i>Telefono
+                    </label>
+                    <input type="tel" class="form-control" name="commissione_telefono_${contatoreMembriCommissione}" 
+                           placeholder="+39 xxx xxx xxxx">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" 
+                               name="commissione_esterno_${contatoreMembriCommissione}" 
+                               id="esterno_${contatoreMembriCommissione}">
+                        <label class="form-check-label" for="esterno_${contatoreMembriCommissione}">
+                            <i class="mdi mdi-star text-warning me-1"></i>
+                            Esterno USR Regione Lazio
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">
+                    <i class="mdi mdi-note-text me-1"></i>Note
+                </label>
+                <textarea class="form-control" name="commissione_note_${contatoreMembriCommissione}" 
+                          rows="2" placeholder="Note aggiuntive (opzionale)"></textarea>
+            </div>
+        `;
+        
+        container.appendChild(membroDiv);
+    }
+
+    function rimuoviMembroCommissione(id) {
+        const elemento = document.getElementById(`membroCommissione_${id}`);
+        if (elemento) {
+            elemento.remove();
+        }
+    }
+</script>
+{% endblock %}

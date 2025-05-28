@@ -1,0 +1,524 @@
+{% extends "base.html" %}
+
+{% block title %}Dettaglio Esame - Gestione Esami PEF{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-1                                    <td>{{ data.sede or '-' }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('elimina_data_aggiuntiva', id=data.id) }}" 
+                                              style="display: inline;" 
+                                              onsubmit="return confirm('Sei sicuro di voler eliminare questa data?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="mdi mdi-delete"></i>
+                                            </button>
+                                        </form>
+                                    </td>  <!-- Informazioni principali esame -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">
+                    <i class="mdi mdi-calendar-check me-2"></i>
+                    Dettaglio Esame - {{ esame.classe_concorso }}
+                </h3>
+                <div>
+                    <a href="{{ url_for('modifica_esame', id=esame.id) }}" class="btn btn-warning">
+                        <i class="mdi mdi-pencil me-1"></i>
+                        Modifica
+                    </a>
+                    <form method="POST" action="{{ url_for('elimina_esame', id=esame.id) }}" 
+                          style="display: inline;" 
+                          onsubmit="return confirm('Sei sicuro di voler eliminare questo esame?')">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="mdi mdi-delete me-1"></i>
+                            Elimina
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong><i class="mdi mdi-school me-2"></i>Classe di Concorso:</strong></td>
+                                <td>{{ esame.classe_concorso }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong><i class="mdi mdi-certificate me-2"></i>Percorsi PEF:</strong></td>
+                                <td>
+                                    {% for percorso in esame.get_percorsi_list() %}
+                                        <span class="badge bg-info me-1 mb-1">
+                                            {% if percorso == 'pef_60_all1' %}
+                                                PeF 60 CFU All. 1 - DPCM 4 ago 2023
+                                            {% elif percorso == 'pef_30_all2' %}
+                                                PeF 30 CFU All. 2 - DPCM 4 ago 2023
+                                            {% elif percorso == 'pef_36_all5' %}
+                                                PeF 36 CFU All. 5 - DPCM 4 ago 2023
+                                            {% elif percorso == 'pef_30_art13' %}
+                                                PeF 30 CFU Art. 13 - DPCM 4 ago 2023
+                                            {% endif %}
+                                        </span>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong><i class="mdi mdi-calendar me-2"></i>Data Inizio:</strong></td>
+                                <td>{{ esame.data_inizio.strftime('%d/%m/%Y alle %H:%M') }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong><i class="mdi mdi-calendar-end me-2"></i>Data Fine:</strong></td>
+                                <td>{{ esame.data_fine.strftime('%d/%m/%Y alle %H:%M') }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong><i class="mdi mdi-laptop me-2"></i>Modalità:</strong></td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if esame.modalita == 'online' else 'bg-primary' }}">
+                                        <i class="mdi mdi-{{ 'laptop' if esame.modalita == 'online' else 'map-marker' }} me-1"></i>
+                                        {{ esame.modalita.title() }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong><i class="mdi mdi-map-marker me-2"></i>Sede:</strong></td>
+                                <td>{{ esame.sede or 'Non specificata' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong><i class="mdi mdi-calendar-plus me-2"></i>Creato il:</strong></td>
+                                <td>{{ esame.created_at.strftime('%d/%m/%Y alle %H:%M') }}</td>
+                            </tr>
+                            {% if esame.note %}
+                            <tr>
+                                <td><strong><i class="mdi mdi-note-text me-2"></i>Note:</strong></td>
+                                <td>{{ esame.note }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Date Aggiuntive -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="mdi mdi-calendar-multiple me-2"></i>
+                    Date Aggiuntive
+                </h5>
+                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalDataAggiuntiva">
+                    <i class="mdi mdi-plus me-1"></i>
+                    Aggiungi Data
+                </button>
+            </div>
+            <div class="card-body">
+                {% if esame.date_aggiuntive %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Data Inizio</th>
+                                    <th>Data Fine</th>
+                                    <th>Modalità</th>
+                                    <th>Sede</th>
+                                    <th>Tipo Attività</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in esame.date_aggiuntive %}
+                                <tr>
+                                    <td>{{ data.data_inizio.strftime('%d/%m/%Y alle %H:%M') }}</td>
+                                    <td>{{ data.data_fine.strftime('%d/%m/%Y alle %H:%M') }}</td>
+                                    <td>
+                                        <span class="badge {{ 'bg-success' if data.modalita == 'online' else 'bg-primary' }}">
+                                            {{ data.modalita.title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ data.sede or '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            {% set attivita_map = {
+                                                'prova_scritta': 'Prova Scritta',
+                                                'prova_orale': 'Prova Orale', 
+                                                'prova_pratica': 'Prova Pratica',
+                                                'laboratorio': 'Laboratorio',
+                                                'simulazione': 'Simulazione',
+                                                'verifica_portfolio': 'Verifica Portfolio',
+                                                'presentazione_progetto': 'Presentazione Progetto',
+                                                'discussione_tesi': 'Discussione Tesi',
+                                                'workshop': 'Workshop',
+                                                'seminario': 'Seminario',
+                                                'tirocinio': 'Tirocinio',
+                                                'altro': 'Altro'
+                                            } %}
+                                            {{ attivita_map[data.attivita] or data.attivita }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('elimina_data_aggiuntiva', id=data.id) }}" 
+                                              style="display: inline;" 
+                                              onsubmit="return confirm('Sei sicuro di voler eliminare questa data?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="mdi mdi-delete"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="mdi mdi-calendar-blank text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">Nessuna data aggiuntiva</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Commissione -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="mdi mdi-account-group me-2"></i>
+                    Commissione d'Esame
+                </h5>
+                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalCommissione">
+                    <i class="mdi mdi-plus me-1"></i>
+                    Aggiungi Membro
+                </button>
+            </div>
+            <div class="card-body">
+                {% if esame.commissioni %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nome e Cognome</th>
+                                    <th>Ruolo</th>
+                                    <th>Titolo/Affiliazione</th>
+                                    <th>Contatti</th>
+                                    <th>USR Lazio</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for membro in esame.commissioni %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            <strong>
+                                                {% if membro.titolo_accademico %}
+                                                    {% if membro.titolo_accademico == 'prof' %}Prof.
+                                                    {% elif membro.titolo_accademico == 'prof_ssa' %}Prof.ssa
+                                                    {% elif membro.titolo_accademico == 'dott' %}Dott.
+                                                    {% elif membro.titolo_accademico == 'dott_ssa' %}Dott.ssa
+                                                    {% elif membro.titolo_accademico == 'ing' %}Ing.
+                                                    {% elif membro.titolo_accademico == 'arch' %}Arch.
+                                                    {% elif membro.titolo_accademico == 'avv' %}Avv.
+                                                    {% endif %}
+                                                {% endif %}
+                                                {{ membro.nome_membro }} {{ membro.cognome_membro }}
+                                            </strong>
+                                            {% if membro.is_esterno_usr_lazio %}
+                                                <small class="text-warning">
+                                                    <i class="mdi mdi-star me-1"></i>Esterno USR Lazio
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if membro.ruolo == 'presidente' %}
+                                            <span class="badge bg-primary">
+                                                <i class="mdi mdi-crown me-1"></i>Presidente
+                                            </span>
+                                        {% elif membro.ruolo == 'docente' %}
+                                            <span class="badge bg-info">
+                                                <i class="mdi mdi-account-tie me-1"></i>Docente
+                                            </span>
+                                        {% elif membro.ruolo == 'tutor_coordinatore' %}
+                                            <span class="badge bg-success">
+                                                <i class="mdi mdi-account-supervisor me-1"></i>Tutor Coordinatore
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ membro.ruolo or '-' }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            {% if membro.affiliazione %}
+                                                <small><i class="mdi mdi-domain me-1"></i>{{ membro.affiliazione }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            {% if membro.email %}
+                                                <small><i class="mdi mdi-email me-1"></i>{{ membro.email }}</small>
+                                            {% endif %}
+                                            {% if membro.telefono %}
+                                                <small><i class="mdi mdi-phone me-1"></i>{{ membro.telefono }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if membro.is_esterno_usr_lazio %}
+                                            <span class="badge bg-warning">
+                                                <i class="mdi mdi-check me-1"></i>Sì
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('modifica_commissione', id=membro.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="Modifica membro">
+                                                <i class="mdi mdi-pencil"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('elimina_commissione', id=membro.id) }}" 
+                                                  style="display: inline;" 
+                                                  onsubmit="return confirm('Sei sicuro di voler rimuovere questo membro?')">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                        title="Elimina membro">
+                                                    <i class="mdi mdi-delete"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                        {% if membro.note %}
+                                            <div class="mt-1">
+                                                <small class="text-muted">
+                                                    <i class="mdi mdi-note-text me-1"></i>{{ membro.note }}
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="mdi mdi-account-off text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">Nessun membro in commissione</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+            <i class="mdi mdi-arrow-left me-1"></i>
+            Torna alla Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Modal Data Aggiuntiva -->
+<div class="modal fade" id="modalDataAggiuntiva" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="mdi mdi-calendar-plus me-2"></i>
+                    Aggiungi Data Aggiuntiva
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('aggiungi_data', id=esame.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Data e Ora Inizio</label>
+                        <input type="datetime-local" name="data_inizio" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data e Ora Fine</label>
+                        <input type="datetime-local" name="data_fine" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Modalità</label>
+                        <select name="modalita" class="form-select" required>
+                            <option value="online">Online</option>
+                            <option value="presenza">In Presenza</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Sede</label>
+                        <input type="text" name="sede" class="form-control" placeholder="Sede (facoltativo)">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo di Attività</label>
+                        <select name="attivita" class="form-select" required>
+                            {% for valore, descrizione in TIPI_ATTIVITA %}
+                            <option value="{{ valore }}">{{ descrizione }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo di Attività</label>
+                        <select name="attivita" class="form-select" required>
+                            <option value="prova_scritta">Prova Scritta</option>
+                            <option value="prova_orale">Prova Orale</option>
+                            <option value="prova_pratica">Prova Pratica</option>
+                            <option value="laboratorio">Laboratorio</option>
+                            <option value="simulazione">Simulazione</option>
+                            <option value="verifica_portfolio">Verifica Portfolio</option>
+                            <option value="presentazione_progetto">Presentazione Progetto</option>
+                            <option value="discussione_tesi">Discussione Tesi</option>
+                            <option value="workshop">Workshop</option>
+                            <option value="seminario">Seminario</option>
+                            <option value="tirocinio">Tirocinio</option>
+                            <option value="altro" selected>Altro</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="mdi mdi-plus me-1"></i>
+                        Aggiungi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Commissione -->
+<div class="modal fade" id="modalCommissione" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="mdi mdi-account-plus me-2"></i>
+                    Aggiungi Membro Commissione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('aggiungi_commissione', id=esame.id) }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Nome e Cognome -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-account me-1"></i>Nome
+                            </label>
+                            <input type="text" name="nome_membro" class="form-control" required 
+                                   placeholder="Nome">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-account me-1"></i>Cognome
+                            </label>
+                            <input type="text" name="cognome_membro" class="form-control" required 
+                                   placeholder="Cognome">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Ruolo e Titolo Accademico -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-account-tie me-1"></i>Ruolo
+                            </label>
+                            <select name="ruolo" class="form-select" required>
+                                <option value="">Seleziona ruolo...</option>
+                                <option value="presidente">Presidente</option>
+                                <option value="docente">Docente</option>
+                                <option value="tutor_coordinatore">Tutor Coordinatore</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-school me-1"></i>Titolo Accademico
+                            </label>
+                            <select name="titolo_accademico" class="form-select">
+                                <option value="">Seleziona...</option>
+                                <option value="prof">Prof.</option>
+                                <option value="prof_ssa">Prof.ssa</option>
+                                <option value="dott">Dott.</option>
+                                <option value="dott_ssa">Dott.ssa</option>
+                                <option value="ing">Ing.</option>
+                                <option value="arch">Arch.</option>
+                                <option value="avv">Avv.</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Affiliazione -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="mdi mdi-domain me-1"></i>Università/Istituzione
+                        </label>
+                        <input type="text" name="affiliazione" class="form-control" 
+                               placeholder="Es: Università degli Studi di Roma 'La Sapienza'">
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Email e Telefono -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-email me-1"></i>Email
+                            </label>
+                            <input type="email" name="email" class="form-control" 
+                                   placeholder="email@esempio.it">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-phone me-1"></i>Telefono
+                            </label>
+                            <input type="tel" name="telefono" class="form-control" 
+                                   placeholder="+39 xxx xxx xxxx">
+                        </div>
+                    </div>
+                    
+                    <!-- Note -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="mdi mdi-note-text me-1"></i>Note
+                        </label>
+                        <textarea name="note" class="form-control" rows="2" 
+                                  placeholder="Note aggiuntive sul membro (opzionale)"></textarea>
+                    </div>
+                    
+                    <!-- Esterno USR Lazio -->
+                    <div class="form-check">
+                        <input type="checkbox" name="is_esterno_usr_lazio" class="form-check-input" id="esterno">
+                        <label class="form-check-label" for="esterno">
+                            <i class="mdi mdi-star text-warning me-1"></i>
+                            Membro esterno USR Regione Lazio
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="mdi mdi-close me-1"></i>Annulla
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="mdi mdi-plus me-1"></i>Aggiungi Membro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

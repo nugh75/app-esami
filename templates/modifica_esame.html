@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}Modifica Esame - Gestione Esami PEF{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">
+                    <i class="mdi mdi-pencil me-2"></i>
+                    Modifica Esame - {{ esame.classe_concorso }}
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.classe_concorso.id }}" class="form-label">
+                                <i class="mdi mdi-school me-1"></i>
+                                Classe di Concorso
+                            </label>
+                            {{ form.classe_concorso(class="form-select") }}
+                            {% if form.classe_concorso.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.classe_concorso.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-certificate me-1"></i>
+                                Percorsi PEF <small class="text-muted">(Seleziona uno o più percorsi)</small>
+                            </label>
+                            <div class="card" style="max-height: 200px; overflow-y: auto;">
+                                <div class="card-body">
+                                    {% for value, label in form.percorsi_pef.choices %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="percorsi_pef" value="{{ value }}" 
+                                                   id="percorso_{{ value }}"
+                                                   {% if form.percorsi_pef.data and value in form.percorsi_pef.data %}checked{% endif %}>
+                                            <label class="form-check-label" for="percorso_{{ value }}">
+                                                <small>{{ label }}</small>
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% if form.percorsi_pef.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.percorsi_pef.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-calendar-start me-1"></i>
+                                Data Esame
+                            </label>
+                            <input type="date" class="form-control" id="data_esame" name="data_esame" 
+                                   value="{{ esame.data_inizio.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-clock-start me-1"></i>
+                                Orario Inizio
+                            </label>
+                            <input type="time" class="form-control" id="orario_inizio" name="orario_inizio" 
+                                   value="{{ esame.data_inizio.strftime('%H:%M') }}" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">
+                                <i class="mdi mdi-clock-end me-1"></i>
+                                Orario Fine
+                            </label>
+                            <input type="time" class="form-control" id="orario_fine" name="orario_fine" 
+                                   value="{{ esame.data_fine.strftime('%H:%M') }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.modalita.id }}" class="form-label">
+                                <i class="mdi mdi-laptop me-1"></i>
+                                Modalità
+                            </label>
+                            {{ form.modalita(class="form-select") }}
+                            {% if form.modalita.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.modalita.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.sede.id }}" class="form-label">
+                                <i class="mdi mdi-map-marker me-1"></i>
+                                Sede
+                            </label>
+                            {{ form.sede(class="form-control", placeholder="Inserisci la sede dell'esame (facoltativo)") }}
+                            {% if form.sede.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.sede.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.note.id }}" class="form-label">
+                            <i class="mdi mdi-note-text me-1"></i>
+                            Note
+                        </label>
+                        {{ form.note(class="form-control", rows="3", placeholder="Note aggiuntive (facoltativo)") }}
+                        {% if form.note.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.note.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Sezione Date Aggiuntive -->
+                    <div class="card mb-3" style="background-color: #f8f9fa;">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="mdi mdi-calendar-plus me-1"></i>
+                                Date Aggiuntive Esistenti
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% if esame.date_aggiuntive %}
+                                {% for data in esame.date_aggiuntive %}
+                                <div class="border rounded p-2 mb-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Data:</small><br>
+                                            <strong>{{ data.data_inizio.strftime('%d/%m/%Y') }}</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Orario Inizio:</small><br>
+                                            <strong>{{ data.data_inizio.strftime('%H:%M') }}</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Orario Fine:</small><br>
+                                            <strong>{{ data.data_fine.strftime('%H:%M') }}</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Modalità:</small><br>
+                                            <span class="badge {{ 'bg-success' if data.modalita == 'online' else 'bg-primary' }}">
+                                                {{ data.modalita.title() }}
+                                            </span>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Sede:</small><br>
+                                            {{ data.sede or 'Non specificata' }}
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Attività:</small><br>
+                                            {% set attivita_dict = dict(TIPI_ATTIVITA) %}
+                                            <span class="badge bg-info">
+                                                {{ attivita_dict.get(data.attivita, data.attivita) }}
+                                            </span>
+                                        </div>
+                                        <div class="col-md-1">
+                                            <form method="POST" action="{{ url_for('elimina_data_aggiuntiva', id=data.id) }}" 
+                                                  style="display: inline;" 
+                                                  onsubmit="return confirm('Eliminare questa data aggiuntiva?')">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="mdi mdi-delete"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted mb-0">Nessuna data aggiuntiva presente.</p>
+                            {% endif %}
+                            
+                            <div id="dateAggiuntive" class="mt-3">
+                                <!-- Le nuove date aggiuntive verranno aggiunte qui dinamicamente -->
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="aggiungiDataAggiuntiva()">
+                                <i class="mdi mdi-plus me-1"></i>
+                                Aggiungi Nuova Data
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('dettaglio_esame', id=esame.id) }}" class="btn btn-secondary">
+                            <i class="mdi mdi-arrow-left me-1"></i>
+                            Annulla
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let contatoreDateAggiuntive = 0;
+
+    // Imposta la data minima ad oggi
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const dataEsameEl = document.getElementById('data_esame');
+    const orarioInizioEl = document.getElementById('orario_inizio');
+    const orarioFineEl = document.getElementById('orario_fine');
+    
+    if (dataEsameEl) dataEsameEl.min = today;
+    
+    // Aggiungi event listener per la validazione degli orari principali
+    if (orarioInizioEl && orarioFineEl) {
+        orarioInizioEl.addEventListener('change', function() {
+            if (orarioFineEl.value && orarioFineEl.value <= this.value) {
+                // Aggiungi un'ora all'orario di inizio per l'orario di fine
+                const [ore, minuti] = this.value.split(':');
+                const nuovaOra = String(parseInt(ore) + 1).padStart(2, '0');
+                orarioFineEl.value = `${nuovaOra}:${minuti}`;
+            }
+            aggiornaDataTimeHidden();
+        });
+        
+        orarioFineEl.addEventListener('change', aggiornaDataTimeHidden);
+    }
+    
+    if (dataEsameEl) {
+        dataEsameEl.addEventListener('change', aggiornaDataTimeHidden);
+    }
+    
+    // Funzione per aggiornare i campi nascosti datetime
+    function aggiornaDataTimeHidden() {
+        const data = dataEsameEl.value;
+        const orarioInizio = orarioInizioEl.value;
+        const orarioFine = orarioFineEl.value;
+        
+        if (data && orarioInizio && orarioFine) {
+            // Crea o aggiorna i campi nascosti per mantenere compatibilità con il form
+            let dataInizioHidden = document.getElementById('data_inizio_hidden');
+            let dataFineHidden = document.getElementById('data_fine_hidden');
+            
+            if (!dataInizioHidden) {
+                dataInizioHidden = document.createElement('input');
+                dataInizioHidden.type = 'hidden';
+                dataInizioHidden.id = 'data_inizio_hidden';
+                dataInizioHidden.name = 'data_inizio';
+                document.querySelector('form').appendChild(dataInizioHidden);
+            }
+            
+            if (!dataFineHidden) {
+                dataFineHidden = document.createElement('input');
+                dataFineHidden.type = 'hidden';
+                dataFineHidden.id = 'data_fine_hidden';
+                dataFineHidden.name = 'data_fine';
+                document.querySelector('form').appendChild(dataFineHidden);
+            }
+            
+            dataInizioHidden.value = `${data}T${orarioInizio}`;
+            dataFineHidden.value = `${data}T${orarioFine}`;
+        }
+    }
+    
+    // Inizializza i campi nascosti al caricamento della pagina
+    document.addEventListener('DOMContentLoaded', function() {
+        aggiornaDataTimeHidden();
+    });
+
+    function aggiungiDataAggiuntiva() {
+        contatoreDateAggiuntive++;
+        const container = document.getElementById('dateAggiuntive');
+        
+        const dateDiv = document.createElement('div');
+        dateDiv.className = 'border rounded p-3 mb-3';
+        dateDiv.id = `dataAggiuntiva_${contatoreDateAggiuntive}`;
+        
+        dateDiv.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Nuova Data Aggiuntiva #${contatoreDateAggiuntive}</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="rimuoviDataAggiuntiva(${contatoreDateAggiuntive})">
+                    <i class="mdi mdi-delete"></i>
+                </button>
+            </div>
+            <div class="row">
+                <div class="col-md-2">
+                    <label class="form-label">Data</label>
+                    <input type="date" class="form-control" name="data_aggiuntiva_data_${contatoreDateAggiuntive}" min="${today.split('T')[0]}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Orario Inizio</label>
+                    <input type="time" class="form-control" name="data_aggiuntiva_ora_inizio_${contatoreDateAggiuntive}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Orario Fine</label>
+                    <input type="time" class="form-control" name="data_aggiuntiva_ora_fine_${contatoreDateAggiuntive}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Modalità</label>
+                    <select class="form-select" name="data_aggiuntiva_modalita_${contatoreDateAggiuntive}">
+                        <option value="online">Online</option>
+                        <option value="presenza">In Presenza</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Sede</label>
+                    <input type="text" class="form-control" name="data_aggiuntiva_sede_${contatoreDateAggiuntive}" placeholder="Sede (opzionale)">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tipo Attività</label>
+                    <select class="form-select" name="data_aggiuntiva_attivita_${contatoreDateAggiuntive}">
+                        {% for value, label in TIPI_ATTIVITA %}
+                        <option value="{{ value }}" {% if value == 'altro' %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(dateDiv);
+        
+        // Aggiungi event listener per la validazione delle date
+        const dataInput = dateDiv.querySelector(`input[name="data_aggiuntiva_data_${contatoreDateAggiuntive}"]`);
+        const oraInizioInput = dateDiv.querySelector(`input[name="data_aggiuntiva_ora_inizio_${contatoreDateAggiuntive}"]`);
+        const oraFineInput = dateDiv.querySelector(`input[name="data_aggiuntiva_ora_fine_${contatoreDateAggiuntive}"]`);
+        
+        if (oraInizioInput && oraFineInput) {
+            oraInizioInput.addEventListener('change', function() {
+                if (oraFineInput.value && oraFineInput.value <= this.value) {
+                    // Aggiungi un'ora all'orario di inizio per l'orario di fine
+                    const [ore, minuti] = this.value.split(':');
+                    const nuovaOra = String(parseInt(ore) + 1).padStart(2, '0');
+                    oraFineInput.value = `${nuovaOra}:${minuti}`;
+                }
+            });
+        }
+    }
+
+    function rimuoviDataAggiuntiva(id) {
+        const elemento = document.getElementById(`dataAggiuntiva_${id}`);
+        if (elemento) {
+            elemento.remove();
+        }
+    }
+</script>
+{% endblock %}
